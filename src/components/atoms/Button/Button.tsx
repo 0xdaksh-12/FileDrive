@@ -35,8 +35,6 @@ export const Button = ({
     className
   );
 
-  console.log(classes);
-
   return (
     <button
       className={classes}
