@@ -70,3 +70,11 @@
   --depth: 1;
   --noise: 0;
 }
+
+:root[data-theme='light'] {
+  --logo-brightness: 1;
+}
+
+:root[data-theme='dark'] {
+  --logo-brightness: 0;
+}
