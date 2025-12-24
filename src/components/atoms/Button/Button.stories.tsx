@@ -59,9 +59,11 @@ export const GoogleIconText: Story = {
         Download
       </>
     ),
+
     size: 'md',
     style: 'default',
     loading: false,
     disabled: false,
+    variant: "accent"
   },
 };

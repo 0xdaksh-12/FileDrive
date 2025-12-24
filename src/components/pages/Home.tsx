@@ -1,46 +1,7 @@
 export default function Home() {
   return (
     <div className="bg-base-100 text-base-content antialiased overflow-x-hidden transition-colors duration-300 font-['Inter',sans-serif]">
-      <header className="sticky top-0 z-50 w-full border-b border-base-300 bg-base-100/95 backdrop-blur">
-        <div className="px-4 md:px-10 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="size-8 flex items-center justify-center rounded bg-primary/10 text-primary">
-              <span className="material-symbols-outlined">security</span>
-            </div>
-            <h2 className="text-lg font-bold tracking-tight">ZapURL</h2>
-          </div>
-
-          <nav className="hidden md:flex items-center gap-8">
-            <a className="text-sm font-medium hover:text-primary" href="#">
-              Home
-            </a>
-            <a
-              className="text-sm font-medium hover:text-primary"
-              href="#how-it-works"
-            >
-              How It Works
-            </a>
-            <a
-              className="text-sm font-medium hover:text-primary"
-              href="#features"
-            >
-              Features
-            </a>
-            <a className="text-sm font-medium hover:text-primary" href="#">
-              Pricing
-            </a>
-          </nav>
-
-          <div className="flex items-center gap-4">
-            <button className="hidden md:flex h-9 px-4 rounded-lg bg-primary text-primary-content text-sm font-semibold shadow hover:brightness-95">
-              Login / Admin
-            </button>
-            <button className="md:hidden">
-              <span className="material-symbols-outlined">menu</span>
-            </button>
-          </div>
-        </div>
-      </header>
+      
 
       {/* ================= HERO ================= */}
       <section className="relative py-12 md:py-24 px-4 md:px-10">
