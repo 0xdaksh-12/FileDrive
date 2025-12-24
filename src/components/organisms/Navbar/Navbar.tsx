@@ -1,8 +1,8 @@
-import { Link, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { ThemeToggle } from '@/components/molecules/ThemeToggle';
-import logo from '@/assets/logo.png';
 import { NavAction } from '@/components/molecules/NavAction';
 import { UserMenu } from '@/components/molecules/UserMenu';
+import { Logo } from '@/components/atoms/Logo';
 
 interface NavbarProps {
   isAuth?: boolean;
@@ -17,22 +17,12 @@ export function Navbar({ isAuth, user, onLogout }: NavbarProps) {
     <header className="sticky top-0 z-50 border-b bg-base-100">
       <div className="navbar px-5">
         <div className="navbar-start">
-          <Link to="/" className="flex items-center gap-2 text-lg font-bold">
-            <img
-              src={logo}
-              className="w-8 h-8 rounded-full"
-              style={{
-                filter:
-                  'brightness(var(--logo-brightness,0)) invert(var(--logo-invert,1))',
-              }}
-            />
-            ZapURL
-          </Link>
+          <Logo />
         </div>
 
-        <div className="navbar-end gap-1 ">
+        <div className="navbar-end gap-1 px-1">
           <ThemeToggle />
-
+          <span className="px-1"></span>
           {isAuth ? (
             <>
               <NavAction to="/dashboard" icon="dashboard">
