@@ -10,7 +10,7 @@ export const Logo = () => {
         className="w-8 h-8 rounded-full"
         style={{
           filter:
-            'brightness(var(--logo-brightness,0)) invert(var(--logo-invert,1))',
+            'brightness(var(--logo-brightness,1)) invert(var(--logo-invert,1))',
         }}
       />
       ZapURL

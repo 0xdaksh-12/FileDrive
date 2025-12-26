@@ -8,11 +8,7 @@ export const Home = () => {
 
   return (
     <div className="bg-base-200 min-h-screen">
-      <Navbar
-        isAuth={true}
-        user={{ name: 'Daksh', email: 'daksh@gmail.com' }}
-        onLogout={() => {}}
-      />
+      <Navbar />
 
       <section className="py-10 md:py-16 px-6 max-w-7xl mx-auto">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
