@@ -51,7 +51,7 @@ export default function AuthProvider({ children }: Props) {
 
       try {
         const response = await apiAuth.post<ApiResponse<AuthPayload>>(
-          '/api/auth/refresh',
+          '/auth/refresh',
           {}
         );
 
@@ -106,7 +106,7 @@ export default function AuthProvider({ children }: Props) {
     }
 
     try {
-      const response = await apiAuth.get<ApiResponse<User>>('/api/users/me');
+      const response = await apiAuth.get<ApiResponse<User>>('/users/me');
       setUser(response.data.data);
     } catch (error) {
       console.error('Failed to fetch user', error);
@@ -138,7 +138,7 @@ export default function AuthProvider({ children }: Props) {
           try {
             const refreshResponse = await apiAuth.post<
               ApiResponse<AuthPayload>
-            >('/api/auth/refresh', {}, { withCredentials: true });
+            >('/auth/refresh', {}, { withCredentials: true });
 
             const newToken = refreshResponse.data.data.accessToken;
             setToken(newToken);
@@ -168,7 +168,7 @@ export default function AuthProvider({ children }: Props) {
       setLoading(true);
       try {
         const response = await api.post<ApiResponse<AuthPayload>>(
-          '/api/auth/login',
+          '/auth/login',
           credentials
         );
 
@@ -188,7 +188,7 @@ export default function AuthProvider({ children }: Props) {
       setLoading(true);
       try {
         const response = await api.post<ApiResponse<AuthPayload>>(
-          '/api/auth/register',
+          '/auth/register',
           data
         );
 
@@ -206,7 +206,7 @@ export default function AuthProvider({ children }: Props) {
   const logout = useCallback(async (): Promise<void> => {
     setLoading(true);
     try {
-      await apiAuth.post('/api/auth/logout', {}, { withCredentials: true });
+      await apiAuth.post('/auth/logout', {}, { withCredentials: true });
     } catch (error) {
       console.error('Logout failed', error);
     } finally {

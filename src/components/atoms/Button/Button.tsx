@@ -10,6 +10,7 @@ export const Button = ({
   disabled = false,
   onClick,
   className,
+  type = 'button',
 }: ButtonProps) => {
   const sizeMap = {
     xs: 'btn-xs',
@@ -40,6 +41,7 @@ export const Button = ({
       className={classes}
       disabled={disabled || loading}
       onClick={onClick}
+      type={type}
     >
       {children}
     </button>

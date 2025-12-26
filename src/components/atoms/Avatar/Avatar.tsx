@@ -1,5 +1,5 @@
 import clsx from 'clsx';
-import type { AvatarProps } from './AvatorProps';
+import type { AvatarProps } from './AvatarProps';
 
 export const Avatar = ({
   name,
