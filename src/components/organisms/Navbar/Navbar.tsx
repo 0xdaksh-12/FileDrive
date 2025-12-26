@@ -3,15 +3,11 @@ import { ThemeToggle } from '@/components/molecules/ThemeToggle';
 import { NavAction } from '@/components/molecules/NavAction';
 import { UserMenu } from '@/components/molecules/UserMenu';
 import { Logo } from '@/components/atoms/Logo';
+import { useAuth } from '@/hooks/useAuth';
 
-interface NavbarProps {
-  isAuth?: boolean;
-  user?: { name?: string; email?: string; profilePic?: string };
-  onLogout?: () => void;
-}
-
-export function Navbar({ isAuth, user, onLogout }: NavbarProps) {
+export function Navbar() {
   const location = useLocation();
+  const { isAuth, user, logout } = useAuth();
 
   return (
     <header className="sticky top-0 z-50 border-b bg-base-100">
@@ -29,7 +25,7 @@ export function Navbar({ isAuth, user, onLogout }: NavbarProps) {
                 Dashboard
               </NavAction>
 
-              {user && <UserMenu user={user} onLogout={onLogout} />}
+              {user && <UserMenu user={user} onLogout={logout} />}
             </>
           ) : (
             <>

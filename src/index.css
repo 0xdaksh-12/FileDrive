@@ -1,90 +1,95 @@
 @import 'tailwindcss';
 @plugin "daisyui";
-
+/* PhishGuard AI Dark Theme */
 @plugin "daisyui/theme" {
-  name: 'dark';
+  name: 'phishguard-dark';
   default: false;
-  prefersdark: false;
-  color-scheme: dark;
-
-  --color-base-100: oklch(0.205 0 0);
-  --color-base-200: oklch(0.18 0 0);
-  --color-base-300: oklch(0.145 0 0);
-  --color-base-content: oklch(0.985 0 0);
-
-  --color-primary: oklch(0.922 0 0);
-  --color-primary-content: oklch(0.205 0 0);
-
-  --color-secondary: oklch(0.269 0 0);
-  --color-secondary-content: oklch(0.985 0 0);
-
-  --color-accent: oklch(0.269 0 0);
-  --color-accent-content: oklch(0.985 0 0);
-
-  --color-neutral: oklch(0.205 0 0);
-  --color-neutral-content: oklch(0.985 0 0);
-
-  --color-info: oklch(0.696 0.17 162.48);
-  --color-success: oklch(0.488 0.243 264.376);
-  --color-warning: oklch(0.769 0.188 70.08);
-  --color-error: oklch(0.704 0.191 22.216);
-
-  --radius-box: 0.625rem;
-  --radius-field: 0.5rem;
-  --radius-selector: 0.375rem;
-  --border: 1px;
-  --depth: 1;
-  --noise: 0;
-}
-
-@plugin "daisyui/theme" {
-  name: 'light';
-  default: true;
   prefersdark: true;
-  color-scheme: light;
-
-  --color-base-100: oklch(1 0 0);
-  --color-base-200: oklch(0.97 0 0);
-  --color-base-300: oklch(0.922 0 0);
-  --color-base-content: oklch(0.145 0 0);
-
-  --color-primary: oklch(0.205 0 0);
-  --color-primary-content: oklch(0.985 0 0);
-
-  --color-secondary: oklch(0.97 0 0);
-  --color-secondary-content: oklch(0.205 0 0);
-
-  --color-accent: oklch(0.97 0 0);
-  --color-accent-content: oklch(0.205 0 0);
-
-  --color-neutral: oklch(0.145 0 0);
+  color-scheme: dark;
+  /* Backgrounds: #111621 (Deep Dark) -> Surface: #1a202c */
+  --color-base-100: oklch(0.18 0.04 265); /* #111621 - Page BG */
+  --color-base-200: oklch(0.22 0.04 265); /* #1a202c - Card Surface */
+  --color-base-300: oklch(0.3 0.04 265); /* #2d3748 - Border/Hover */
+  --color-base-content: oklch(0.985 0 0); /* White Text */
+  /* Primary: #2463eb */
+  --color-primary: oklch(0.546 0.245 262.88);
+  --color-primary-content: oklch(1 0 0);
+  --color-secondary: oklch(0.35 0.04 265); /* Slate-800 approx */
+  --color-secondary-content: oklch(0.985 0 0);
+  --color-accent: oklch(0.546 0.245 262.88);
+  --color-accent-content: oklch(1 0 0);
+  --color-neutral: oklch(0.15 0.02 265);
   --color-neutral-content: oklch(0.985 0 0);
-
-  --color-info: oklch(0.6 0.118 184.704);
-  --color-success: oklch(0.646 0.222 41.116);
-  --color-warning: oklch(0.828 0.189 84.429);
-  --color-error: oklch(0.577 0.245 27.325);
-
-  --radius-box: 0.625rem;
-  --radius-field: 0.5rem;
-  --radius-selector: 0.375rem;
+  --color-info: oklch(0.7 0.15 220);
+  --color-success: oklch(0.6 0.18 145); /* #16a34a */
+  --color-warning: oklch(0.75 0.18 85); /* #ca8a04 */
+  --color-error: oklch(0.63 0.22 28); /* #dc2626 */
+  --radius-box: 0.75rem; /* xl */
+  --radius-field: 0.5rem; /* lg */
+  --radius-selector: 0.5rem;
   --border: 1px;
-  --depth: 1;
-  --noise: 0;
 }
-
-:root[data-theme='light'] {
+/* PhishGuard AI Light Theme */
+@plugin "daisyui/theme" {
+  name: 'phishguard-light';
+  default: true;
+  prefersdark: false;
+  color-scheme: light;
+  /* Backgrounds: #f6f6f8 (Light BG) -> Surface: #ffffff */
+  --color-base-100: oklch(1 0 0); /* #ffffff - Surface */
+  --color-base-200: oklch(0.968 0.01 260); /* #f6f6f8 - Page BG */
+  --color-base-300: oklch(0.93 0.02 260); /* #e7ebf3 - Border */
+  --color-base-content: oklch(0.2 0.05 260); /* #0e121b - Text Main */
+  /* Primary: #2463eb */
+  --color-primary: oklch(0.546 0.245 262.88);
+  --color-primary-content: oklch(1 0 0);
+  --color-secondary: oklch(0.968 0.01 260);
+  --color-secondary-content: oklch(0.2 0.05 260);
+  --color-accent: oklch(0.968 0.01 260);
+  --color-accent-content: oklch(0.2 0.05 260);
+  --color-neutral: oklch(0.2 0.05 260);
+  --color-neutral-content: oklch(1 0 0);
+  --color-info: oklch(0.6 0.12 220);
+  --color-success: oklch(0.6 0.18 145);
+  --color-warning: oklch(0.75 0.18 85);
+  --color-error: oklch(0.57 0.21 27);
+  --radius-box: 0.75rem;
+  --radius-field: 0.5rem;
+  --radius-selector: 0.5rem;
+  --border: 1px;
+}
+:root[data-theme='phishguard-light'] {
   --logo-brightness: 1;
 }
-
-:root[data-theme='dark'] {
+:root[data-theme='phishguard-dark'] {
   --logo-brightness: 0;
 }
-
 ::-webkit-scrollbar {
   display: none;
 }
 * {
   scrollbar-width: none;
   -ms-overflow-style: none;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  overflow-x: hidden;
+}
+
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-5px);
+  }
+  75% {
+    transform: translateX(5px);
+  }
+}
+
+.animate-shake {
+  animation: shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
 }

@@ -1,6 +1,6 @@
 import { NavLink } from 'react-router-dom';
 import { Button } from '@/components/atoms/Button';
-import { Avatar } from '@/components/atoms/Avator';
+import { Avatar } from '@/components/atoms/Avatar';
 
 interface UserMenuProps {
   user: {
