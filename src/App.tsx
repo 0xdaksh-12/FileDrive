@@ -4,12 +4,14 @@ import { Home } from '@/components/pages/Home';
 import AuthLayout from '@/components/layouts/AuthLayout/AuthLayout';
 import Login from '@/components/pages/Login';
 import Register from '@/components/pages/Register';
+import { Dashboard } from '@/components/pages/Dashboard';
 
 function App() {
   return (
     <AuthProvider>
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/auth" element={<AuthLayout />}>
           <Route path="login" element={<Login />} />
           <Route path="register" element={<Register />} />

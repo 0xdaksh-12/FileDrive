@@ -46,7 +46,6 @@ const meta: Meta<typeof Navbar> = {
   ],
   // We need to define argTypes manually since Navbar doesn't have these props
   argTypes: {
-    // @ts-expect-error
     isAuth: {
       control: 'boolean',
       description: 'Is user authenticated?',
