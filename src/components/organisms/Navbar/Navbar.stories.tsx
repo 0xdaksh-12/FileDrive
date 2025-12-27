@@ -46,7 +46,6 @@ const meta: Meta<typeof Navbar> = {
   ],
   // We need to define argTypes manually since Navbar doesn't have these props
   argTypes: {
-    // @ts-expect-error
     isAuth: {
       control: 'boolean',
       description: 'Is user authenticated?',
@@ -63,7 +62,6 @@ type Story = StoryObj<typeof Navbar>;
 
 export const Guest: Story = {
   args: {
-    // @ts-ignore
     isAuth: false,
     user: null,
   },
@@ -71,7 +69,6 @@ export const Guest: Story = {
 
 export const Authenticated: Story = {
   args: {
-    // @ts-ignore
     isAuth: true,
     user: {
       name: 'DJ',
@@ -84,7 +81,6 @@ export const Authenticated: Story = {
 
 export const AuthenticatedWithProfilePic: Story = {
   args: {
-    // @ts-ignore
     isAuth: true,
     user: {
       name: 'DJ',

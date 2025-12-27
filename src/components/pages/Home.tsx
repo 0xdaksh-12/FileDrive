@@ -1,10 +1,14 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
 import { Navbar } from '../organisms/Navbar';
+import { Footer } from '../organisms/Footer';
 import { InputGroup } from '../molecules/InputGroup';
-import { Logo } from '../atoms/Logo';
 
 export const Home = () => {
   const [url, setUrl] = useState('');
+  const navigate = useNavigate();
+  const { isAuth } = useAuth();
 
   return (
     <div className="bg-base-200 min-h-screen">
@@ -37,7 +41,13 @@ export const Home = () => {
                 value={url}
                 className="border-0 focus:outline-none focus:ring-0 focus:border-0"
                 onChange={(e) => setUrl(e.target.value)}
-                onAction={() => alert(`Scanning: ${url}`)}
+                onAction={() => {
+                  if (isAuth) {
+                    navigate('/dashboard');
+                  } else {
+                    navigate('/auth/login');
+                  }
+                }}
               />
 
               <p className="text-xs opacity-60 mt-2 flex items-center gap-1 justify-center lg:justify-start">
@@ -214,65 +224,7 @@ export const Home = () => {
         </div>
       </section>
 
-      <footer className="bg-base-100 border-t border-base-300 pt-16 pb-8 px-6">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex flex-col md:flex-row justify-between items-start gap-10 mb-12">
-            <div className="max-w-xs">
-              <div className="flex items-center gap-3 mb-4">
-                <Logo />
-              </div>
-              <p className="text-sm opacity-60">
-                Protecting the modern web with intelligent, real-time threat
-                detection.
-              </p>
-            </div>
-
-            <div className="flex flex-wrap gap-12 sm:gap-24">
-              {[
-                {
-                  title: 'Product',
-                  links: ['Features', 'API', 'Pricing', 'Extension'],
-                },
-                {
-                  title: 'Company',
-                  links: ['About', 'Blog', 'Careers', 'Contact'],
-                },
-                {
-                  title: 'Legal',
-                  links: ['Privacy', 'Terms', 'Security'],
-                },
-              ].map((section) => (
-                <div key={section.title} className="flex flex-col gap-3">
-                  <h4 className="font-bold">{section.title}</h4>
-                  {section.links.map((l) => (
-                    <a
-                      key={l}
-                      href="#"
-                      className="text-sm opacity-70 hover:text-primary"
-                    >
-                      {l}
-                    </a>
-                  ))}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="border-t border-base-300 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
-            <p className="text-xs opacity-50">
-              © 2025 ZipURL. All rights reserved.
-            </p>
-            <div className="flex gap-4 text-base-content/50">
-              <a href="#" className="hover:text-primary">
-                Twitter
-              </a>
-              <a href="#" className="hover:text-primary">
-                GitHub
-              </a>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 };

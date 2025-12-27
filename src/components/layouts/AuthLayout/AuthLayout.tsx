@@ -8,9 +8,7 @@ const AuthLayout = () => {
 
         {/* Page Footer */}
         <footer className="mt-8 text-center text-sm text-base-content/60">
-          <p>
-            © {new Date().getFullYear()} PhishGuard AI. All rights reserved.
-          </p>
+          <p>© {new Date().getFullYear()} ZapURL. All rights reserved.</p>
           <div className="flex items-center justify-center gap-4 mt-2">
             <a
               className="hover:text-base-content/80 transition-colors"

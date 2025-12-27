@@ -1,5 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '../atoms/Button';
+import { Logo } from '../atoms/Logo';
 import { loginSchema } from '@/lib/validation';
 import type { ZodIssue } from 'zod';
 import {
@@ -101,25 +102,13 @@ export const Login = () => {
       <div className="p-8 sm:p-10 flex flex-col gap-6">
         {/* Logo & Header Section */}
         <div className="flex flex-col items-center text-center gap-4">
-          <div className="flex items-center gap-2 text-primary">
-            <span
-              className="material-symbols-outlined"
-              style={{ fontSize: '40px' }}
-            >
-              shield_lock
-            </span>
-          </div>
+          <Logo className="text-3xl" imgClassName="w-12 h-12" />
           <Link
             to="/"
             className="absolute top-4 right-4 text-base-content/40 hover:text-base-content transition-colors"
           >
             <span className="material-symbols-outlined">close</span>
           </Link>
-          <div>
-            <h2 className="text-2xl font-bold tracking-tight text-base-content">
-              PhishGuard AI
-            </h2>
-          </div>
         </div>
 
         {/* Welcome Text */}
