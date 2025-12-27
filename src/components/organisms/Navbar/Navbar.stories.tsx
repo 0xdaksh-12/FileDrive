@@ -62,7 +62,6 @@ type Story = StoryObj<typeof Navbar>;
 
 export const Guest: Story = {
   args: {
-    // @ts-ignore
     isAuth: false,
     user: null,
   },
@@ -70,7 +69,6 @@ export const Guest: Story = {
 
 export const Authenticated: Story = {
   args: {
-    // @ts-ignore
     isAuth: true,
     user: {
       name: 'DJ',
@@ -83,7 +81,6 @@ export const Authenticated: Story = {
 
 export const AuthenticatedWithProfilePic: Story = {
   args: {
-    // @ts-ignore
     isAuth: true,
     user: {
       name: 'DJ',
