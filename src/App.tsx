@@ -1,23 +1,14 @@
-import { Routes, Route } from 'react-router-dom';
-import AuthProvider from '@/providers/authProvider';
-import { Home } from '@/components/pages/Home';
-import AuthLayout from '@/components/layouts/AuthLayout/AuthLayout';
-import Login from '@/components/pages/Login';
-import Register from '@/components/pages/Register';
-import { Dashboard } from '@/components/pages/Dashboard';
+import { useState } from 'react';
+import { Button } from './components/ui/button';
 
 function App() {
+  const [count, setCount] = useState(0);
+
   return (
-    <AuthProvider>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/auth" element={<AuthLayout />}>
-          <Route path="login" element={<Login />} />
-          <Route path="register" element={<Register />} />
-        </Route>
-      </Routes>
-    </AuthProvider>
+    <div className="flex flex-col items-center justify-center h-screen">
+      Hello World <Button onClick={() => setCount(count + 1)}>Click</Button>{' '}
+      {count}
+    </div>
   );
 }
 
