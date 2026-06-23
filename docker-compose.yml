@@ -1,0 +1,73 @@
+services:
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: server
+    environment:
+      SECRET_KEY: "django-insecure-ljpmo(z8ela5ios3pj+a7ls!^lw%3-o-f)rwvmz3!3+0$&tiyl"
+      ALLOWED_HOSTS: "localhost,127.0.0.1,server,0.0.0.0"
+      CORS_ALLOWED_ORIGINS: "http://localhost:3000"
+      DEBUG: "True"
+      DATABASE_URL: "postgres://filedrive:filedrive@postgres:5432/filedrive"
+      REDIS_URL: "redis://redis:6379/0"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - 8000:8000 # can put 127.0.0.1:8000 if you want it is secure
+    command: uv run python manage.py runserver 0.0.0.0:8000 # keep 0.0.0.0 inside the container
+    develop:
+      watch:
+        - action: sync
+          path: ./server
+          target: /app
+          ignore:
+            - .venv
+            - __pycache__
+            - db.sqlite3
+
+        - action: rebuild
+          path: ./server/Dockerfile
+
+        - action: rebuild
+          path: ./server/pyproject.toml
+
+        - action: rebuild
+          path: ./server/uv.lock
+
+  postgres:
+    image: postgres:17
+    container_name: postgres
+    environment:
+      POSTGRES_DB: filedrive
+      POSTGRES_USER: filedrive
+      POSTGRES_PASSWORD: filedrive
+    ports:
+      - 5432:5432
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U filedrive -d filedrive"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7.4
+    container_name: redis
+    ports:
+      - 6379:6379
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+  redis_data:
