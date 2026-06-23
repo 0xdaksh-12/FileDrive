@@ -9,9 +9,6 @@ in
       nodejs_24
       pnpm
 
-      postgresql
-      redis
-
       basedpyright
       ruff
       prettierd
@@ -38,10 +35,20 @@ in
       export UV_LINK_MODE=copy
       export PYTHONUNBUFFERED=1
 
-      if [ ! -d ".venv" ]; then
-        uv venv;
+      if [ -d "server" ]; then
+        cd server
+        if [ ! -d ".venv" ]; then
+          uv venv;
+        fi
+        source .venv/bin/activate
+        cd ..
+      elif [ -d "../server" ] || [ -f "manage.py" ]; then
+        # We are already inside the server directory
+        if [ ! -d ".venv" ]; then
+          uv venv;
+        fi
+        source .venv/bin/activate
       fi
-      source .venv/bin/activate
 
       echo "Welcome to Drive"
     '';
