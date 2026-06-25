@@ -50,6 +50,10 @@ in
         source .venv/bin/activate
       fi
 
+      if [ -d "client" ] && [ ! -d "client/node_modules" ]; then
+        (cd client && pnpm install)
+      fi
+
       echo "Welcome to Drive"
     '';
   }

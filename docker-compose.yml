@@ -38,6 +38,22 @@ services:
         - action: rebuild
           path: ./server/uv.lock
 
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: client
+    environment:
+      VITE_API_URL: "http://localhost:8000"
+      CHOKIDAR_USEPOLLING: "true"
+    ports:
+      - 3000:3000
+    volumes:
+      - ./client:/app
+      - /app/node_modules
+    depends_on:
+      - server
+
   postgres:
     image: postgres:17
     container_name: postgres
