@@ -40,6 +40,7 @@ ALLOWED_HOSTS: list[str] = env.list("ALLOWED_HOSTS") or []
 
 # Caller Domain
 CORS_ALLOWED_ORIGINS: list[str] = env.list("CORS_ALLOWED_ORIGINS") or []
+CORS_ALLOW_CREDENTIALS = True
 
 # Application definition
 INSTALLED_APPS = [
