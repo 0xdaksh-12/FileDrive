@@ -21,7 +21,6 @@ postgres_data/
 redis_data/
 
 # IDEs and editors
-.vscode/
 .idea/
 *.suo
 *.ntvs*
