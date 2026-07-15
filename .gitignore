@@ -58,6 +58,7 @@ pnpm-debug.log*
 lerna-debug.log*
 coverage/
 .nyc_output
+design
 
 # Typescript build info
 *.tsbuildinfo
