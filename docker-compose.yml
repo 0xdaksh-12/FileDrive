@@ -18,6 +18,9 @@ services:
         condition: service_healthy
     ports:
       - 8000:8000 # can put 127.0.0.1:8000 if you want it is secure
+    volumes:
+      - ./server:/app
+      - /app/.venv
     command: uv run python manage.py runserver 0.0.0.0:8000 # keep 0.0.0.0 inside the container
     develop:
       watch:
