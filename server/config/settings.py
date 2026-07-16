@@ -53,6 +53,8 @@ INSTALLED_APPS = [
     # Third-party
     "rest_framework",
     "corsheaders",
+    # APP_DIRS
+    "accounts",
 ]
 
 MIDDLEWARE = [
