@@ -30,15 +30,15 @@ in
     shellHook = ''
       export UV_PYTHON="${pythonEnv}/bin/python"
       export UV_PYTHON_DOWNLOADS=never
-      export LD_LIBRARY_PATH="${pkgs.stdenv.cc.cc.lib}/lib''${LD_LIBRARY_PATH:+:''$LD_LIBRARY_PATH}"
-
       export UV_LINK_MODE=copy
       export PYTHONUNBUFFERED=1
+
+      export LD_LIBRARY_PATH="${pkgs.stdenv.cc.cc.lib}/lib''${LD_LIBRARY_PATH:+:''$LD_LIBRARY_PATH}"
 
       if [ -d "server" ]; then
         cd server
         if [ ! -d ".venv" ]; then
-          uv venv;
+          uv venv
         fi
         source .venv/bin/activate
         cd ..
