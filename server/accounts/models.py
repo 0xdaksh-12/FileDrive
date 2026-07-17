@@ -1,3 +1,4 @@
+from typing import Any
 import uuid
 from django.contrib.auth.models import (
     AbstractBaseUser,
@@ -6,17 +7,19 @@ from django.contrib.auth.models import (
 )
 from django.db import models
 
-# Create your models here.
-
 
 class UserManager(BaseUserManager):
-    def create_user(self, email, name, password=None, **extra_fields):
+    def create_user(
+        self, email: str, name: str, password=None, **extra_fields: Any
+    ) -> "User":
         if not email:
             raise ValueError("The Email Field must be set")
         email = self.normalize_email(email)
         user = self.model(email=email, name=name, **extra_fields)
         if password:
             user.set_password(password)
+        else:
+            user.set_unusable_password()
         user.save(using=self._db)
         return user
 
@@ -24,6 +27,12 @@ class UserManager(BaseUserManager):
         extra_fields.setdefault("role", User.Role.ADMIN)
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
+
+        if extra_fields.get("is_staff") is not True:
+            raise ValueError("Superuser must have is_staff=True.")
+        if extra_fields.get("is_superuser") is not True:
+            raise ValueError("Superuser must have is_superuser=True.")
+
         return self.create_user(email, name, password, **extra_fields)
 
 
@@ -43,7 +52,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    objects = UserManager()
+    objects: UserManager = UserManager()
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["name"]
@@ -83,6 +92,8 @@ class AuthSession(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="sessions")
     refresh_token_hash = models.CharField(max_length=128, null=True, blank=True)
     valid = models.BooleanField(default=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.CharField(max_length=512, null=True, blank=True)
     expires_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
