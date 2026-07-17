@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     # Third-party
     "rest_framework",
     "corsheaders",
+    "django_filters",
     # Local Apps
     "accounts",
 ]
@@ -129,3 +130,22 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Tell Django to use our UUID-based custom user model
 AUTH_USER_MODEL = "accounts.User"
+
+# JWT Secret Keys & Expiration settings
+JWT_ACCESS_SECRET = env("JWT_ACCESS_SECRET")
+JWT_REFRESH_SECRET = env("JWT_REFRESH_SECRET")
+
+ACCESS_TOKEN_EXPIRE_MINUTES = env.int("ACCESS_TOKEN_EXPIRE_MINUTES")
+REFRESH_TOKEN_EXPIRE_DAYS = env.int("REFRESH_TOKEN_EXPIRE_DAYS")
+
+# Django REST Framework global configuration
+REST_FRAMEWORK = {
+    # Set our custom JWT authentication as the default across all endpoints
+    # "DEFAULT_AUTHENTICATION_CLASSES": (
+    #     "accounts.authentication.CustomJWTAuthentication",
+    # ),
+    # # Lock down the API by default; explicitly override with AllowAny on public views
+    # "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
+    # Enable filtering backend globally
+    "DEFAULT_FILTER_BACKENDS": ("django_filters.rest_framework.DjangoFilterBackend",),
+}

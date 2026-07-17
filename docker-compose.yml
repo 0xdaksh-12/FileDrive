@@ -11,6 +11,10 @@ services:
       DEBUG: "True"
       DATABASE_URL: "postgres://filedrive:filedrive@postgres:5432/filedrive"
       REDIS_URL: "redis://redis:6379/0"
+      JWT_ACCESS_SECRET: "access-token-^O0>cQNlP6rBz|(wOOWp*>;^:.D}/ENl=q!mo5OTb)c"
+      JWT_REFRESH_SECRET: "refresh-token-W=9(>0CChhj#p&p=<YYsINr/WpM/{yTwb0r[.jA_Ju="
+      ACCESS_TOKEN_EXPIRE_MINUTES: "15"
+      REFRESH_TOKEN_EXPIRE_DAYS: "7"
     depends_on:
       postgres:
         condition: service_healthy
