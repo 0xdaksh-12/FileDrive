@@ -1,0 +1,19 @@
+opencollection: 1.0.0
+
+info:
+  name: FileDrive
+bundled: false
+extensions:
+  bruno:
+    ignore:
+      - node_modules
+      - .git
+      - .venv
+      - .vscode
+      - .devcontainer
+      - .github
+      - __pycache__
+      - .pytest_cache
+      - dist
+      - build
+      - pyrightconfig.json

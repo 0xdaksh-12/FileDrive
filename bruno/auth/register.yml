@@ -1,0 +1,24 @@
+info:
+  name: register
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{API_BASE}}/auth/register"
+  body:
+    type: form-urlencoded
+    data:
+      - name: name
+        value: Daksh
+      - name: email
+        value: dakshjha808@gmail.com
+      - name: password
+        value: Password123
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
