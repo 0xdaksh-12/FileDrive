@@ -12,9 +12,24 @@ class UserManager(BaseUserManager):
     def create_user(
         self, email: str, name: str, password=None, **extra_fields: Any
     ) -> "User":
+        name = name.strip() if name else ""
+        email = email.strip() if email else ""
+
+        if not name:
+            raise ValueError("The Name Field must be set")
         if not email:
             raise ValueError("The Email Field must be set")
+
         email = self.normalize_email(email)
+
+        # Automatically strip whitespace from any other string fields in extra_fields
+        for key, value in extra_fields.items():
+            if isinstance(value, str):
+                value = value.strip()
+                if key == "role":
+                    value = value.lower()
+                extra_fields[key] = value
+
         user = self.model(email=email, name=name, **extra_fields)
         if password:
             user.set_password(password)
@@ -24,7 +39,7 @@ class UserManager(BaseUserManager):
         return user
 
     def create_superuser(self, email, name, password=None, **extra_fields):
-        extra_fields.setdefault("role", User.Role.ADMIN)
+        extra_fields.setdefault("role", self.model.Role.ADMIN)
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
 
@@ -43,7 +58,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=50)
-    email = models.EmailField(unique=True, db_index=True)
+    email = models.EmailField(unique=True)  # unique=True implies db_index=True
     role = models.CharField(
         max_length=20, choices=Role.choices, default=Role.USER, db_index=True
     )
@@ -59,9 +74,35 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     class Meta:
         db_table = "users"
+        ordering = ["-created_at"]  # Sensible default ordering for queries/admin
 
     def __str__(self):
         return self.email
+
+    def _normalize_fields(self):
+        if not self.password:
+            self.set_unusable_password()
+        if self.name:
+            self.name = self.name.strip()
+        if self.email:
+            self.email = self.__class__.objects.normalize_email(self.email.strip())
+
+    def clean(self):
+        """
+        Model-level validation to ensure forms and Django Admin also
+        strip whitespace and normalize emails before saving.
+        """
+        self._normalize_fields()
+        super().clean()
+
+    def full_clean(self, *args, **kwargs):
+        self._normalize_fields()
+        super().full_clean(*args, **kwargs)
+
+    @property
+    def is_admin(self) -> bool:
+        """Helper property for quick role checks in code or templates."""
+        return self.role == self.Role.ADMIN
 
 
 class AuthIdentity(models.Model):
