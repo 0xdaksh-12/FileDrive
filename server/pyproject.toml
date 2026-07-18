@@ -17,3 +17,8 @@ dependencies = [
     "python-jose[cryptography]>=3.5.0",
 ]
 
+[dependency-groups]
+dev = [
+    "djangorestframework-stubs>=3.17.0",
+]
+
