@@ -21,18 +21,20 @@ class SecurityService:
     @staticmethod
     def hash_secret(secret: str) -> str:
         """Securely hashes a plain-text password or secret using bcrypt."""
-        # Bcrypt has a strict 72-byte limit; we truncate to prevent ValueError
-        return bcrypt.hashpw(secret[:72].encode("utf-8"), bcrypt.gensalt()).decode(
+        return bcrypt.hashpw(SecurityService._bcrypt_bytes(secret), bcrypt.gensalt()).decode(
             "utf-8"
         )
 
     @staticmethod
     def verify_secret(plain_secret: str, hashed_secret: str) -> bool:
         """Verifies a plain-text secret against a stored bcrypt hash."""
-        # Bcrypt has a strict 72-byte limit; we truncate to prevent ValueError
         return bcrypt.checkpw(
-            plain_secret[:72].encode("utf-8"), hashed_secret.encode("utf-8")
+            SecurityService._bcrypt_bytes(plain_secret), hashed_secret.encode("utf-8")
         )
+
+    @staticmethod
+    def _bcrypt_bytes(secret: str) -> bytes:
+        return secret.encode("utf-8")[:72]
 
     @staticmethod
     def hash_token(token: str) -> str:
