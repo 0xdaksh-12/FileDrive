@@ -2,7 +2,7 @@ from rest_framework import views, status
 from rest_framework.response import Response
 from .serializers import RegisterSerializer, TokenResponseSerializer
 from rest_framework.permissions import AllowAny
-from .services import AuthService
+from .services_auth import AuthService
 
 
 class RegisterView(views.APIView):
@@ -12,14 +12,8 @@ class RegisterView(views.APIView):
         serializer = RegisterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        # Tells Pyright: this is definitively a dictionary!
-        assert isinstance(serializer.validated_data, dict)
-
         access, refresh = AuthService.register(
-            name=serializer.validated_data["name"],
-            email=serializer.validated_data["email"],
-            password=serializer.validated_data["password"],
-            request=request,
+            **serializer.validated_data, request=request
         )
 
         response = Response(

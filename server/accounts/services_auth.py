@@ -56,13 +56,14 @@ class AuthService:
         user_agent = None
 
         if request:
-            # Extract client IP from Django request (handles proxy X-Forwarded-For)
+            # Extract client IP: try X-Forwarded-For, then X-Real-IP, then REMOTE_ADDR
             x_forwarded_for = request.headers.get("X-Forwarded-For")
-            ip_address = (
-                x_forwarded_for.split(",")[0].strip()
-                if x_forwarded_for
-                else request.META.get("REMOTE_ADDR")
-            )
+            if x_forwarded_for:
+                ip_address = x_forwarded_for.split(",")[0].strip()
+            else:
+                ip_address = request.headers.get("X-Real-IP") or request.META.get("REMOTE_ADDR")
+
+            # Extract and truncate User-Agent
             user_agent = request.headers.get("User-Agent", "")[:512]
 
         return AuthSession.objects.create(
@@ -91,6 +92,6 @@ class AuthService:
             httponly=True,
             samesite="None" if is_prod else "Lax",
             secure=is_prod,
-            path="/api/v1/auth",  # Restrict cookie strictly to auth routes!
+            path="/api/auth",  # Restrict cookie strictly to auth routes!
             max_age=expire_days * 24 * 60 * 60,
         )
