@@ -61,7 +61,9 @@ class AuthService:
             if x_forwarded_for:
                 ip_address = x_forwarded_for.split(",")[0].strip()
             else:
-                ip_address = request.headers.get("X-Real-IP") or request.META.get("REMOTE_ADDR")
+                ip_address = request.headers.get("X-Real-IP") or request.META.get(
+                    "REMOTE_ADDR"
+                )
 
             # Extract and truncate User-Agent
             user_agent = request.headers.get("User-Agent", "")[:512]
