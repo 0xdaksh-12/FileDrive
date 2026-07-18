@@ -32,3 +32,6 @@ createsuperuser:
 # View application logs
 logs:
     docker compose logs -f server
+
+test *apps:
+    docker compose run --rm server uv run python manage.py test {{apps}}
