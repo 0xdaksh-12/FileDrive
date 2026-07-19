@@ -12,7 +12,7 @@ http:
       - name: name
         value: Daksh
       - name: email
-        value: dakshjha8085@gmail.com
+        value: daksh8085@gmail.com
       - name: password
         value: Password123
   auth: inherit
