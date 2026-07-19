@@ -1,5 +1,6 @@
-from typing import Any
 import uuid
+from typing import Any
+
 from django.contrib.auth.models import (
     AbstractBaseUser,
     BaseUserManager,
@@ -8,12 +9,25 @@ from django.contrib.auth.models import (
 from django.db import models
 
 
+class CaseInsensitiveEmailField(models.EmailField):
+    """
+    Custom field that strips whitespace and lowercases email values
+    upon database preparation, making lookups and saves case-insensitive.
+    """
+
+    def get_prep_value(self, value):
+        value = super().get_prep_value(value)
+        if isinstance(value, str):
+            return value.strip().lower()
+        return value
+
+
 class UserManager(BaseUserManager):
     def create_user(
         self, email: str, name: str, password=None, **extra_fields: Any
     ) -> "User":
         name = name.strip() if name else ""
-        email = email.strip() if email else ""
+        email = email.strip().lower() if email else ""
 
         if not name:
             raise ValueError("The Name Field must be set")
@@ -58,7 +72,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=50)
-    email = models.EmailField(unique=True)  # unique=True implies db_index=True
+    email = CaseInsensitiveEmailField(unique=True)  # unique=True implies db_index=True
     role = models.CharField(
         max_length=20, choices=Role.choices, default=Role.USER, db_index=True
     )
@@ -85,7 +99,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         if self.name:
             self.name = self.name.strip()
         if self.email:
-            self.email = self.__class__.objects.normalize_email(self.email.strip())
+            self.email = self.email.strip().lower()
 
     def clean(self):
         """
@@ -117,7 +131,7 @@ class AuthIdentity(models.Model):
         max_length=20, choices=Provider.choices, default=Provider.EMAIL
     )
     provider_user_id = models.CharField(max_length=255, null=True, blank=True)
-    email = models.EmailField(db_index=True)
+    email = CaseInsensitiveEmailField(db_index=True)
     email_verified = models.BooleanField(default=False)
     password_hash = models.CharField(max_length=128, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)

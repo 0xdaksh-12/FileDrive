@@ -6,6 +6,9 @@ class RegisterSerializer(serializers.Serializer):
     email = serializers.EmailField()
     password = serializers.CharField(min_length=8, max_length=128, write_only=True)
 
+    def validate_email(self, value):
+        return value.strip().lower() if value else value
+
 
 class TokenResponseSerializer(serializers.Serializer):
     access_token = serializers.CharField()
@@ -15,3 +18,6 @@ class TokenResponseSerializer(serializers.Serializer):
 class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField()
     password = serializers.CharField(min_length=8, max_length=128, write_only=True)
+
+    def validate_email(self, value):
+        return value.strip().lower() if value else value
