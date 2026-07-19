@@ -10,8 +10,9 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
-from pathlib import Path
 import os
+from pathlib import Path
+
 import environ
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -141,11 +142,11 @@ REFRESH_TOKEN_EXPIRE_DAYS = env.int("REFRESH_TOKEN_EXPIRE_DAYS")
 # Django REST Framework global configuration
 REST_FRAMEWORK = {
     # Set our custom JWT authentication as the default across all endpoints
-    # "DEFAULT_AUTHENTICATION_CLASSES": (
-    #     "accounts.authentication.CustomJWTAuthentication",
-    # ),
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "accounts.authentication.CustomJWTAuthentication",
+    ),
     # # Lock down the API by default; explicitly override with AllowAny on public views
-    # "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
+    "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
     # Enable filtering backend globally
     "DEFAULT_FILTER_BACKENDS": ("django_filters.rest_framework.DjangoFilterBackend",),
 }

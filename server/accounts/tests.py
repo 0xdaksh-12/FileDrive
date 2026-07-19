@@ -1,19 +1,21 @@
+import uuid
 from datetime import timedelta
 from unittest.mock import patch
-import uuid
 
 from django.conf import settings
-from django.utils import timezone
-from django.test import TestCase, RequestFactory
 from django.db import IntegrityError
-from rest_framework.exceptions import AuthenticationFailed, ValidationError
+from django.test import RequestFactory, TestCase
+from django.utils import timezone
 from rest_framework import status
+from rest_framework.exceptions import AuthenticationFailed, ValidationError
+from rest_framework.request import Request
 from rest_framework.test import APITestCase
 
-from accounts.models import User, AuthIdentity, AuthSession
-from accounts.services_security import SecurityService
+from accounts.authentication import CustomJWTAuthentication
+from accounts.constants import REFRESH_TOKEN_COOKIE, TokenType
+from accounts.models import AuthIdentity, AuthSession, User
 from accounts.services_auth import AuthService
-from accounts.constants import TokenType
+from accounts.services_security import SecurityService
 
 
 class UserManagerTests(TestCase):
@@ -385,7 +387,9 @@ class AuthServiceTests(TestCase):
             REMOTE_ADDR="127.0.0.1",
             headers={"X-Real-IP": "198.51.100.42"},
         )
-        user = User.objects.create_user(email="realip@filedrive.com", name="Real IP User")
+        user = User.objects.create_user(
+            email="realip@filedrive.com", name="Real IP User"
+        )
         session = AuthService._create_session(user, request)
         self.assertEqual(session.ip_address, "198.51.100.42")
 
@@ -395,13 +399,17 @@ class AuthServiceTests(TestCase):
             "/api/auth/register",
             REMOTE_ADDR="198.51.100.99",
         )
-        user = User.objects.create_user(email="fallbackip@filedrive.com", name="Fallback IP User")
+        user = User.objects.create_user(
+            email="fallbackip@filedrive.com", name="Fallback IP User"
+        )
         session = AuthService._create_session(user, request)
         self.assertEqual(session.ip_address, "198.51.100.99")
 
     def test_create_session_no_request(self):
         """Verify that when request is None, session is created with null IP and User-Agent."""
-        user = User.objects.create_user(email="norequest@filedrive.com", name="No Request User")
+        user = User.objects.create_user(
+            email="norequest@filedrive.com", name="No Request User"
+        )
         session = AuthService._create_session(user, request=None)
         self.assertIsNone(session.ip_address)
         self.assertIsNone(session.user_agent)
@@ -417,7 +425,118 @@ class AuthServiceTests(TestCase):
         self.assertEqual(user.name, "Trimmed Name")
         self.assertEqual(user.email, "NORMALIZED@filedrive.com")
 
+    def test_login_success_service(self):
+        """Test successful login via AuthService."""
+        AuthService.register(**self.register_data)
 
+        request = self.factory.post(
+            "/api/auth/login",
+            REMOTE_ADDR="192.168.2.2",
+            headers={"User-Agent": "Mozilla/5.0 LoginBrowser"},
+        )
+        access, refresh = AuthService.login(
+            email=self.register_data["email"],
+            password=self.register_data["password"],
+            request=request,
+        )
+        self.assertTrue(access)
+        self.assertTrue(refresh)
+
+        # Retrieve the newly created session
+        user = User.objects.get(email=self.register_data["email"])
+        sessions = AuthSession.objects.filter(user=user).order_by("-created_at")
+        self.assertEqual(sessions.count(), 2)
+
+        login_session = sessions[0]
+        self.assertEqual(login_session.ip_address, "192.168.2.2")
+        self.assertEqual(login_session.user_agent, "Mozilla/5.0 LoginBrowser")
+        self.assertTrue(login_session.valid)
+
+    def test_login_invalid_password_raises_authentication_failed(self):
+        """Test that login with invalid password raises AuthenticationFailed."""
+        AuthService.register(**self.register_data)
+        with self.assertRaises(AuthenticationFailed) as ctx:
+            AuthService.login(
+                email=self.register_data["email"],
+                password="wrongpassword",
+            )
+        self.assertEqual(str(ctx.exception), "Invalid credentials")
+
+    def test_login_nonexistent_email_raises_authentication_failed(self):
+        """Test that login with non-existent email raises AuthenticationFailed."""
+        with self.assertRaises(AuthenticationFailed) as ctx:
+            AuthService.login(
+                email="nonexistent@filedrive.com",
+                password="anypassword",
+            )
+        self.assertEqual(str(ctx.exception), "Invalid credentials")
+
+    def test_login_inactive_user_raises_authentication_failed(self):
+        """Test that login with inactive user raises AuthenticationFailed."""
+        AuthService.register(**self.register_data)
+        user = User.objects.get(email=self.register_data["email"])
+        user.is_active = False
+        user.save()
+
+        with self.assertRaises(AuthenticationFailed) as ctx:
+            AuthService.login(
+                email=self.register_data["email"],
+                password=self.register_data["password"],
+            )
+        self.assertEqual(str(ctx.exception), "Account is disabled")
+
+    def test_logout_invalidates_session(self):
+        """Test that logout invalidates the given session ID."""
+        AuthService.register(**self.register_data)
+        user = User.objects.get(email=self.register_data["email"])
+        session = AuthSession.objects.get(user=user)
+        self.assertTrue(session.valid)
+        self.assertIsNotNone(session.refresh_token_hash)
+
+        AuthService.logout(session.id)
+
+        session.refresh_from_db()
+        self.assertFalse(session.valid)
+        self.assertIsNone(session.refresh_token_hash)
+
+    def test_logout_nonexistent_session_does_not_fail(self):
+        """Test that logout handles non-existent or invalid session IDs gracefully."""
+        AuthService.logout(uuid.uuid4())
+
+    def test_logout_all_invalidates_all_user_sessions(self):
+        """Test that logout_all invalidates all active sessions for a user."""
+        AuthService.register(**self.register_data)
+        user = User.objects.get(email=self.register_data["email"])
+
+        AuthService.login(
+            email=self.register_data["email"],
+            password=self.register_data["password"],
+        )
+
+        active_sessions = AuthSession.objects.filter(user=user, valid=True)
+        self.assertEqual(active_sessions.count(), 2)
+
+        AuthService.logout_all(user.id)
+
+        self.assertEqual(AuthSession.objects.filter(user=user, valid=True).count(), 0)
+        for session in AuthSession.objects.filter(user=user):
+            self.assertFalse(session.valid)
+            self.assertIsNone(session.refresh_token_hash)
+
+    def test_delete_cookie_token_clears_cookie(self):
+        """Test that delete_cookie_token correctly configures the cookie-clearing header."""
+        from rest_framework.response import Response
+
+        response = Response()
+        AuthService.delete_cookie_token(response)
+
+        self.assertIn(REFRESH_TOKEN_COOKIE, response.cookies)
+        cookie = response.cookies[REFRESH_TOKEN_COOKIE]
+        self.assertEqual(cookie["max-age"], 0)
+        self.assertEqual(cookie["path"], "/api/auth")
+
+        is_prod = getattr(settings, "DEBUG", True) is False
+        self.assertEqual(cookie["samesite"], "None" if is_prod else "Lax")
 
 
 class RegisterViewTests(APITestCase):
@@ -438,8 +557,8 @@ class RegisterViewTests(APITestCase):
         self.assertEqual(response.data["token_type"], "bearer")
 
         # Verify HttpOnly Cookie generation
-        self.assertIn("refresh_token", response.cookies)
-        cookie = response.cookies["refresh_token"]
+        self.assertIn(REFRESH_TOKEN_COOKIE, response.cookies)
+        cookie = response.cookies[REFRESH_TOKEN_COOKIE]
 
         self.assertIsNotNone(cookie)
         self.assertTrue(cookie["httponly"])
@@ -505,3 +624,379 @@ class RegisterViewTests(APITestCase):
         self.assertIn("name", response.data)
         self.assertIn("email", response.data)
         self.assertIn("password", response.data)
+
+
+class LoginViewTests(APITestCase):
+    """TDD integration tests for the upcoming /api/auth/login endpoint."""
+
+    def setUp(self):
+        self.url = "/api/auth/login"
+        self.password = "SecurePassword123!"
+        # Create a pre-existing user and identity using your existing service
+        self.access, self.refresh = AuthService.register(
+            name="Login User", email="login@filedrive.com", password=self.password
+        )
+        self.client.logout()  # Clear any state
+
+    def test_login_success(self):
+        payload = {"email": "login@filedrive.com", "password": self.password}
+        response = self.client.post(self.url, payload, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("access_token", response.data)
+
+        # Ensure a new session was generated in the DB
+        user = User.objects.get(email="login@filedrive.com")
+        self.assertEqual(AuthSession.objects.filter(user=user, valid=True).count(), 2)
+
+        # Ensure a new HttpOnly cookie was set
+        self.assertIn(REFRESH_TOKEN_COOKIE, response.cookies)
+
+    def test_login_wrong_password_returns_401(self):
+        payload = {"email": "login@filedrive.com", "password": "WrongPassword!"}
+        response = self.client.post(self.url, payload, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(response.data["detail"], "Invalid email or password.")
+
+    def test_login_nonexistent_email_returns_401(self):
+        """
+        SECURITY: Must return the exact same error message as a wrong password
+        to prevent malicious actors from scraping which emails are registered.
+        """
+        payload = {"email": "nobody@filedrive.com", "password": self.password}
+        response = self.client.post(self.url, payload, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(response.data["detail"], "Invalid email or password.")
+
+    def test_login_inactive_user_is_rejected(self):
+        user = User.objects.get(email="login@filedrive.com")
+        user.is_active = False
+        user.save()
+
+        payload = {"email": "login@filedrive.com", "password": self.password}
+        response = self.client.post(self.url, payload, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(response.data["detail"], "User account is disabled.")
+
+    def test_login_oauth_only_account_rejected(self):
+        """If an account only has a Google/GitHub identity, password login should fail cleanly."""
+        user = User.objects.create_user(email="oauth@filedrive.com", name="OAuth User")
+        AuthIdentity.objects.create(
+            user=user,
+            provider=AuthIdentity.Provider.GOOGLE,
+            email="oauth@filedrive.com",
+            provider_user_id="google_12345",
+            password_hash=None,  # No password set!
+        )
+
+        payload = {"email": "oauth@filedrive.com", "password": "AnyPassword123!"}
+        response = self.client.post(self.url, payload, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_login_email_case_insensitivity(self):
+        """Email should be case-insensitive during login (both local and domain parts normalized)."""
+        payload = {"email": "LOGIN@FILEDrive.com", "password": self.password}
+        response = self.client.post(self.url, payload, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("access_token", response.data)
+
+    def test_login_email_whitespace_stripped(self):
+        """Surrounding whitespace in the email should be stripped before login processing."""
+        payload = {"email": "   login@filedrive.com   ", "password": self.password}
+        response = self.client.post(self.url, payload, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("access_token", response.data)
+
+    def test_login_missing_fields_returns_400(self):
+        """Missing required fields in the payload must return 400 Bad Request."""
+        # Missing email
+        response = self.client.post(
+            self.url, {"password": self.password}, format="json"
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        # Missing password
+        response = self.client.post(
+            self.url, {"email": "login@filedrive.com"}, format="json"
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_login_empty_fields_returns_400(self):
+        """Empty email or password must return 400 Bad Request."""
+        # Empty email
+        response = self.client.post(
+            self.url, {"email": "", "password": self.password}, format="json"
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        # Empty password
+        response = self.client.post(
+            self.url, {"email": "login@filedrive.com", "password": ""}, format="json"
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_login_none_fields_returns_400(self):
+        """None/null values for email or password must return 400 Bad Request."""
+        # Null email
+        response = self.client.post(
+            self.url, {"email": None, "password": self.password}, format="json"
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        # Null password
+        response = self.client.post(
+            self.url, {"email": "login@filedrive.com", "password": None}, format="json"
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_login_invalid_email_format_returns_400(self):
+        """An email in an invalid format must fail validation with 400 Bad Request."""
+        payload = {"email": "not-an-email", "password": self.password}
+        response = self.client.post(self.url, payload, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+class LogoutViewTests(APITestCase):
+    """Integration tests for the /api/auth/logout endpoint."""
+
+    def setUp(self):
+        self.url = "/api/auth/logout"
+        self.password = "SecurePassword123!"
+        self.access, self.refresh = AuthService.register(
+            name="Logout User", email="logout@filedrive.com", password=self.password
+        )
+        self.user = User.objects.get(email="logout@filedrive.com")
+        self.session = AuthSession.objects.get(user=self.user)
+        self.client.logout()
+
+    def test_logout_unauthenticated_fails(self):
+        """Unauthenticated logout request should return 401 Unauthorized."""
+        response = self.client.post(self.url)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_logout_authenticated_success(self):
+        """Authenticated logout request should invalidate session, return 204, and delete cookie."""
+        self.client.force_authenticate(user=self.user, token=self.session.id)
+
+        response = self.client.post(self.url)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+
+        # Verify session is invalidated in the database
+        self.session.refresh_from_db()
+        self.assertFalse(self.session.valid)
+        self.assertIsNone(self.session.refresh_token_hash)
+
+        # Verify response clears the HttpOnly cookie
+        self.assertIn(REFRESH_TOKEN_COOKIE, response.cookies)
+        cookie = response.cookies[REFRESH_TOKEN_COOKIE]
+        self.assertEqual(cookie["max-age"], 0)
+        self.assertEqual(cookie["path"], "/api/auth")
+
+
+class RefreshViewTests(APITestCase):
+    """Integration tests for the /api/auth/refresh endpoint."""
+
+    def setUp(self):
+        self.url = "/api/auth/refresh"
+        self.password = "SecurePassword123!"
+        self.access, self.refresh = AuthService.register(
+            name="Refresh User", email="refresh@filedrive.com", password=self.password
+        )
+        self.user = User.objects.get(email="refresh@filedrive.com")
+        self.session = AuthSession.objects.get(user=self.user)
+        self.client.logout()
+
+    def test_refresh_missing_cookie_returns_204(self):
+        """Requesting refresh without cookie should return 204 No Content."""
+        response = self.client.post(self.url)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+
+    def test_refresh_valid_token_without_rotation(self):
+        """If refresh token has <75% lifetime used, it should return new access token and NOT rotate/set cookie."""
+        self.client.cookies[REFRESH_TOKEN_COOKIE] = self.refresh
+        response = self.client.post(self.url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("access_token", response.data)
+        # Ensure refresh token cookie was NOT updated (should not be in response headers)
+        self.assertNotIn(REFRESH_TOKEN_COOKIE, response.cookies)
+
+    def test_refresh_valid_token_with_rotation(self):
+        """If refresh token has >=75% lifetime used, it should return new access token and set a new cookie."""
+        # Force the refresh token creation time to be in the past to trigger rotation
+        # A refresh token lasts 7 days, so 75% of 7 days is 5.25 days.
+        # Let's mock time travel back by 6 days to issue the token, then verify it rotates at current time.
+        with patch("accounts.services_security.timezone.now") as mock_now:
+            past_time = timezone.now() - timedelta(days=6)
+            mock_now.return_value = past_time
+            # Generate past refresh token and hash it in session
+            past_refresh = SecurityService.generate_refresh_token(
+                self.user.id, self.session.id
+            )
+            self.session.refresh_token_hash = SecurityService.hash_token(past_refresh)
+            self.session.save()
+
+        self.client.cookies[REFRESH_TOKEN_COOKIE] = past_refresh
+        response = self.client.post(self.url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("access_token", response.data)
+
+        # Ensure a new refresh token cookie was set
+        self.assertIn(REFRESH_TOKEN_COOKIE, response.cookies)
+        new_cookie = response.cookies[REFRESH_TOKEN_COOKIE]
+        self.assertNotEqual(new_cookie.value, past_refresh)
+
+    def test_refresh_invalid_or_expired_token_deactivates_session_and_clears_cookie(
+        self,
+    ):
+        """An invalid refresh token should clear the cookie, deactivate the session, and return 204."""
+        self.client.cookies[REFRESH_TOKEN_COOKIE] = "invalid_token_signature"
+        response = self.client.post(self.url)
+
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        # Verify the cookie was deleted (max-age=0)
+        self.assertIn(REFRESH_TOKEN_COOKIE, response.cookies)
+        cookie = response.cookies[REFRESH_TOKEN_COOKIE]
+        self.assertEqual(cookie["max-age"], 0)
+
+    def test_refresh_token_reuse_detection_invalidates_session(self):
+        """Using a previously used refresh token should detect reuse and invalidate session."""
+        # Rotate first to generate a new token
+        with patch("accounts.services_security.timezone.now") as mock_now:
+            past_time = timezone.now() - timedelta(days=6)
+            mock_now.return_value = past_time
+            past_refresh = SecurityService.generate_refresh_token(
+                self.user.id, self.session.id
+            )
+            self.session.refresh_token_hash = SecurityService.hash_token(past_refresh)
+            self.session.save()
+
+        # Execute first refresh (rotation succeeds, session gets new hash)
+        self.client.cookies[REFRESH_TOKEN_COOKIE] = past_refresh
+        response = self.client.post(self.url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        # Session should still be valid
+        self.session.refresh_from_db()
+        self.assertTrue(self.session.valid)
+
+        # Attempt to reuse the same past_refresh token
+        self.client.cookies[REFRESH_TOKEN_COOKIE] = past_refresh
+        response_reuse = self.client.post(self.url)
+        self.assertEqual(response_reuse.status_code, status.HTTP_204_NO_CONTENT)
+
+        # Session must be invalidated
+        self.session.refresh_from_db()
+        self.assertFalse(self.session.valid)
+
+
+class CustomJWTAuthenticationTests(TestCase):
+    """Unit tests for CustomJWTAuthentication middleware."""
+
+    def setUp(self):
+        self.factory = RequestFactory()
+        self.auth = CustomJWTAuthentication()
+        self.user = User.objects.create_user(
+            email="auth@filedrive.com", name="Auth User"
+        )
+        self.session = AuthSession.objects.create(
+            user=self.user,
+            ip_address="127.0.0.1",
+            expires_at=timezone.now() + timedelta(days=7),
+        )
+
+    def _get_request(self, path: str, **kwargs) -> Request:
+        return Request(self.factory.get(path, **kwargs))
+
+    def test_authenticate_valid_token_success(self):
+        token = SecurityService.generate_access_token(self.user.id, self.session.id)
+        request = self._get_request(
+            "/api/any-endpoint", headers={"Authorization": f"Bearer {token}"}
+        )
+
+        result = self.auth.authenticate(request)
+        self.assertIsNotNone(result)
+        assert result is not None
+        user, sid = result
+        self.assertEqual(user, self.user)
+        self.assertEqual(sid, str(self.session.id))
+
+    def test_authenticate_missing_header_returns_none(self):
+        request = self._get_request("/api/any-endpoint")
+        result = self.auth.authenticate(request)
+        self.assertIsNone(result)
+
+    def test_authenticate_malformed_header_returns_none(self):
+        request = self._get_request(
+            "/api/any-endpoint", headers={"Authorization": "Bearer"}
+        )
+        result = self.auth.authenticate(request)
+        self.assertIsNone(result)
+
+        request = self._get_request(
+            "/api/any-endpoint", headers={"Authorization": "Token 12345"}
+        )
+        result = self.auth.authenticate(request)
+        self.assertIsNone(result)
+
+    def test_authenticate_invalid_token_type_raises_auth_failed(self):
+        token = SecurityService.generate_refresh_token(self.user.id, self.session.id)
+        request = self._get_request(
+            "/api/any-endpoint", headers={"Authorization": f"Bearer {token}"}
+        )
+        with self.assertRaisesMessage(
+            AuthenticationFailed, "Invalid or malformed token"
+        ):
+            self.auth.authenticate(request)
+
+    def test_authenticate_expired_token_raises_auth_failed(self):
+        with patch("accounts.services_security.timezone.now") as mock_now:
+            past_time = timezone.now() - timedelta(days=1)
+            mock_now.return_value = past_time
+            token = SecurityService.generate_access_token(self.user.id, self.session.id)
+
+        request = self._get_request(
+            "/api/any-endpoint", headers={"Authorization": f"Bearer {token}"}
+        )
+        with self.assertRaisesMessage(AuthenticationFailed, "Token has expired"):
+            self.auth.authenticate(request)
+
+    def test_authenticate_tampered_token_raises_auth_failed(self):
+        token = SecurityService.generate_access_token(self.user.id, self.session.id)
+        tampered_token = token + "tampered"
+        request = self._get_request(
+            "/api/any-endpoint", headers={"Authorization": f"Bearer {tampered_token}"}
+        )
+        with self.assertRaisesMessage(
+            AuthenticationFailed, "Invalid or malformed token"
+        ):
+            self.auth.authenticate(request)
+
+    def test_authenticate_inactive_user_raises_auth_failed(self):
+        self.user.is_active = False
+        self.user.save()
+        token = SecurityService.generate_access_token(self.user.id, self.session.id)
+        request = self._get_request(
+            "/api/any-endpoint", headers={"Authorization": f"Bearer {token}"}
+        )
+        with self.assertRaisesMessage(
+            AuthenticationFailed, "User not found or inactive"
+        ):
+            self.auth.authenticate(request)
+
+    def test_authenticate_invalid_session_raises_auth_failed(self):
+        self.session.valid = False
+        self.session.save()
+        token = SecurityService.generate_access_token(self.user.id, self.session.id)
+        request = self._get_request(
+            "/api/any-endpoint", headers={"Authorization": f"Bearer {token}"}
+        )
+        with self.assertRaisesMessage(AuthenticationFailed, "Session is invalid"):
+            self.auth.authenticate(request)
