@@ -37,9 +37,8 @@ class UserManagerTests(TestCase):
         )
         self.assertEqual(user.email, "test@filedrive.com")
         self.assertEqual(user.name, "Test User")
-        # This is used for admin panel access, so even if user somehow find /admin page.
-        # They can't login
-        self.assertTrue(user.check_password("securepassword123"))
+        # Passwords are not stored in the core User profile (only unusable password)
+        self.assertFalse(user.has_usable_password())
         self.assertEqual(user.role, User.Role.USER)
         self.assertTrue(user.is_active)
         self.assertFalse(user.is_staff)

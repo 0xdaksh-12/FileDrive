@@ -45,7 +45,11 @@ class UserManager(BaseUserManager):
                 extra_fields[key] = value
 
         user = self.model(email=email, name=name, **extra_fields)
-        if password:
+
+        # Only save password when user is admin
+        if password and (
+            extra_fields.get("is_superuser") or extra_fields.get("is_staff")
+        ):
             user.set_password(password)
         else:
             user.set_unusable_password()
@@ -94,7 +98,9 @@ class User(AbstractBaseUser, PermissionsMixin):
         return self.email
 
     def _normalize_fields(self):
-        if not self.password:
+        if not (self.is_superuser or self.is_staff):
+            self.set_unusable_password()
+        elif not self.password:
             self.set_unusable_password()
         if self.name:
             self.name = self.name.strip()
