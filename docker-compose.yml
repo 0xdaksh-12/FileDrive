@@ -22,10 +22,11 @@ services:
         condition: service_healthy
     ports:
       - 8000:8000 # can put 127.0.0.1:8000 if you want it is secure
+      - 5678:5678 # Debugging port
     volumes:
       - ./server:/app
       - /app/.venv
-    command: uv run python manage.py runserver 0.0.0.0:8000 # keep 0.0.0.0 inside the container
+    command: uv run python -m debugpy --listen 0.0.0.0:5678 manage.py runserver 0.0.0.0:8000 --nothreading --noreload
     develop:
       watch:
         - action: rebuild
