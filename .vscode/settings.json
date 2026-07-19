@@ -1,4 +1,10 @@
 {
   "typescript.tsdk": "client/node_modules/typescript/lib",
-  "python.defaultInterpreterPath": "./server/.venv/bin/python"
+  "python.defaultInterpreterPath": "./server/.venv/bin/python3",
+  "terminal.integrated.defaultProfile.linux": "zsh",
+  "terminal.integrated.profiles.linux": {
+    "zsh": {
+      "path": "/bin/zsh"
+    }
+  }
 }
