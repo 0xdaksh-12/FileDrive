@@ -1,0 +1,17 @@
+info:
+  name: logout
+  type: http
+  seq: 3
+
+http:
+  method: POST
+  url: "{{API_BASE}}/auth/logout"
+  auth:
+    type: bearer
+    token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJlN2ZhOTdhNS05YTY5LTQwMTQtYmZjOC0xOWY5MTViNzMwOWUiLCJzaWQiOiIxMjY5Zjg4ZC00MDg0LTQ3MTItYWUxYi1jMWNhNWJjNGM1ZjMiLCJ0eXBlIjoiYWNjZXNzIiwiaWF0IjoxNzg0NDY2Mzg5LCJleHAiOjE3ODQ0NjcyODl9.B-MHCMk0TPTpsTUHGE1fTJemQjCPpHEw9ffpfeeZYlM
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

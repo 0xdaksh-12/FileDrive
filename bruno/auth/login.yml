@@ -1,16 +1,14 @@
 info:
-  name: register
+  name: login
   type: http
-  seq: 1
+  seq: 2
 
 http:
   method: POST
-  url: "{{API_BASE}}/auth/register"
+  url: "{{API_BASE}}/auth/login"
   body:
     type: form-urlencoded
     data:
-      - name: name
-        value: Daksh
       - name: email
         value: dakshjha8085@gmail.com
       - name: password
