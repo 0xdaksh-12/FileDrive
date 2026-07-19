@@ -28,14 +28,6 @@ services:
     command: uv run python manage.py runserver 0.0.0.0:8000 # keep 0.0.0.0 inside the container
     develop:
       watch:
-        - action: sync
-          path: ./server
-          target: /app
-          ignore:
-            - .venv
-            - __pycache__
-            - db.sqlite3
-
         - action: rebuild
           path: ./server/Dockerfile
 

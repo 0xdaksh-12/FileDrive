@@ -5,6 +5,13 @@
     "ms-python.python",
     "charliermarsh.ruff",
     "dbaeumer.vscode-eslint",
-    "skellock.just"
+    "ms-python.debugpy",
+    "skellock.just",
+    "detachhead.basedpyright",
+    "ms-vscode.vscode-typescript-next",
+    "esbenp.prettier-vscode",
+    "formulahendry.auto-rename-tag",
+    "formulahendry.auto-close-tag",
+    "dsznajder.es7-react-js-snippets"
   ]
 }
