@@ -7,7 +7,14 @@ from django.utils import timezone
 from rest_framework.exceptions import AuthenticationFailed, ValidationError
 from rest_framework.response import Response
 
-from .constants import REFRESH_TOKEN_COOKIE, TokenType
+from .constants import (
+    ERROR_EMAIL_ALREADY_EXISTS,
+    ERROR_INVALID_CREDENTIALS,
+    ERROR_INVALID_SESSION,
+    ERROR_USER_INVALID,
+    REFRESH_TOKEN_COOKIE,
+    TokenType,
+)
 from .models import AuthIdentity, AuthSession, User
 from .services_security import SecurityService
 
@@ -24,7 +31,7 @@ class AuthService:
         if AuthIdentity.objects.filter(
             provider=AuthIdentity.Provider.EMAIL, email=email
         ).exists():
-            raise ValidationError({"detail": "User with this email already exists"})
+            raise ValidationError({"detail": ERROR_EMAIL_ALREADY_EXISTS})
 
         try:
             # Create core profile and local email identity
@@ -62,11 +69,11 @@ class AuthService:
             or not identity.password_hash
             or not SecurityService.verify_secret(password, identity.password_hash)
         ):
-            raise AuthenticationFailed("Invalid credentials")
+            raise AuthenticationFailed(ERROR_INVALID_CREDENTIALS)
 
         user = identity.user
         if not user.is_active:
-            raise AuthenticationFailed("Account is disabled")
+            raise AuthenticationFailed(ERROR_USER_INVALID)
 
         session = cls._create_session(user, request)
         access, refresh = cls._generate_token_pair(user.id, session.id)
@@ -78,7 +85,7 @@ class AuthService:
 
     @classmethod
     @transaction.atomic
-    def refresh(cls, token: str) -> tuple[str, str | None]:
+    def refresh(cls, token: str) -> tuple[str | None, str | None]:
         """Rotate refresh token (if >75% expired) and issue a new access token."""
         payload = SecurityService.verify_jwt(token, expected_type=TokenType.REFRESH)
 
@@ -87,7 +94,7 @@ class AuthService:
 
         session = AuthSession.objects.filter(id=session_id, valid=True).first()
         if not session or (session.expires_at and session.expires_at < timezone.now()):
-            raise AuthenticationFailed("Session expired or invalid")
+            raise AuthenticationFailed(ERROR_INVALID_SESSION)
 
         # Verify token against stored hash
         if not session.refresh_token_hash or not SecurityService.verify_token(
@@ -95,7 +102,7 @@ class AuthService:
         ):
             session.valid = False
             session.save(update_fields=["valid", "updated_at"])
-            raise AuthenticationFailed("Token reuse detected. Session invalidated.")
+            return None, None
 
         # Always generate a new short-lived access token
         access_token = SecurityService.generate_access_token(user_id, session_id)

@@ -1,7 +1,11 @@
 from rest_framework.authentication import BaseAuthentication
 from rest_framework.exceptions import AuthenticationFailed
 
-from accounts.constants import TokenType
+from accounts.constants import (
+    ERROR_INVALID_SESSION,
+    ERROR_USER_INVALID,
+    TokenType,
+)
 from accounts.services_security import SecurityService
 from .models import AuthSession, User
 
@@ -19,11 +23,11 @@ class CustomJWTAuthentication(BaseAuthentication):
 
         user = User.objects.filter(id=payload["sub"], is_active=True).first()
         if not user:
-            raise AuthenticationFailed("User not found or inactive")
+            raise AuthenticationFailed(ERROR_USER_INVALID)
 
         session = AuthSession.objects.filter(id=payload["sid"], valid=True).first()
         if not session:
-            raise AuthenticationFailed("Session is invalid")
+            raise AuthenticationFailed(ERROR_INVALID_SESSION)
 
         # Returns (request.user, request.auth)
         return (user, payload["sid"])

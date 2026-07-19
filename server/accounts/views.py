@@ -56,6 +56,10 @@ class RefreshView(views.APIView):
 
         try:
             access, refresh = AuthService.refresh(token)
+            if access is None and refresh is None:
+                response = Response(status=status.HTTP_204_NO_CONTENT)
+                AuthService.delete_cookie_token(response)
+                return response
             response = Response(TokenResponseSerializer({"access_token": access}).data)
             if refresh:
                 AuthService.set_cookie_token(response, refresh)

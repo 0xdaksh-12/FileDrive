@@ -12,7 +12,17 @@ from rest_framework.request import Request
 from rest_framework.test import APITestCase
 
 from accounts.authentication import CustomJWTAuthentication
-from accounts.constants import REFRESH_TOKEN_COOKIE, TokenType
+from accounts.constants import (
+    ERROR_EMAIL_ALREADY_EXISTS,
+    ERROR_INVALID_CREDENTIALS,
+    ERROR_INVALID_OR_MALFORMED_TOKEN,
+    ERROR_INVALID_SESSION,
+    ERROR_INVALID_TOKEN_TYPE,
+    ERROR_TOKEN_EXPIRED,
+    ERROR_USER_INVALID,
+    REFRESH_TOKEN_COOKIE,
+    TokenType,
+)
 from accounts.models import AuthIdentity, AuthSession, User
 from accounts.services_auth import AuthService
 from accounts.services_security import SecurityService
@@ -153,18 +163,18 @@ class UserModelTests(TestCase):
 
         user.clean()
 
-        self.assertEqual(user.email, "USER@filedrive.com")
+        self.assertEqual(user.email, "user@filedrive.com")
         self.assertEqual(user.name, "Test User")
 
     def test_full_clean_strips_and_normalizes_fields(self):
         user = User(
-            email="  TEST@FILEDRIVE.COM ",
+            email="  UNIQUE_CLEAN_TEST@FILEDRIVE.COM ",
             name="  Test User  ",
         )
 
         user.full_clean()
 
-        self.assertEqual(user.email, "TEST@filedrive.com")
+        self.assertEqual(user.email, "unique_clean_test@filedrive.com")
         self.assertEqual(user.name, "Test User")
 
     def test_email_must_be_unique(self):
@@ -255,34 +265,43 @@ class SecurityServiceTests(TestCase):
 
     def test_jwt_token_type_confusion_attack(self):
         """Ensure an access token cannot be verified against a refresh token check, and vice versa."""
-        access_token = SecurityService.generate_access_token(
-            self.user_id, self.session_id
-        )
-        refresh_token = SecurityService.generate_refresh_token(
-            self.user_id, self.session_id
-        )
+        with self.settings(JWT_ACCESS_SECRET=settings.JWT_REFRESH_SECRET):
+            access_token = SecurityService.generate_access_token(
+                self.user_id, self.session_id
+            )
+            refresh_token = SecurityService.generate_refresh_token(
+                self.user_id, self.session_id
+            )
 
-        with self.assertRaises(AuthenticationFailed):
-            SecurityService.verify_jwt(access_token, expected_type=TokenType.REFRESH)
+            with self.assertRaisesMessage(
+                AuthenticationFailed, ERROR_INVALID_TOKEN_TYPE
+            ):
+                SecurityService.verify_jwt(
+                    access_token, expected_type=TokenType.REFRESH
+                )
 
-        with self.assertRaises(AuthenticationFailed):
-            SecurityService.verify_jwt(refresh_token, expected_type=TokenType.ACCESS)
+            with self.assertRaisesMessage(
+                AuthenticationFailed, ERROR_INVALID_TOKEN_TYPE
+            ):
+                SecurityService.verify_jwt(
+                    refresh_token, expected_type=TokenType.ACCESS
+                )
 
     def test_jwt_expired_token_raises_auth_failed(self):
         """Simulate time travel to ensure expired JWTs are strictly rejected."""
+        past_time = timezone.now() - timedelta(days=10)
         with patch("accounts.services_security.timezone.now") as mock_now:
             # Issue token in the past
-            past_time = timezone.now() - timedelta(days=10)
             mock_now.return_value = past_time
             token = SecurityService.generate_access_token(self.user_id, self.session_id)
 
         # Verify at real current time
-        with self.assertRaisesMessage(AuthenticationFailed, "Token has expired"):
+        with self.assertRaisesMessage(AuthenticationFailed, ERROR_TOKEN_EXPIRED):
             SecurityService.verify_jwt(token, expected_type=TokenType.ACCESS)
 
     def test_jwt_invalid_signature_or_malformed_token(self):
         with self.assertRaisesMessage(
-            AuthenticationFailed, "Invalid or malformed token"
+            AuthenticationFailed, ERROR_INVALID_OR_MALFORMED_TOKEN
         ):
             SecurityService.verify_jwt(
                 "not.a.valid.jwt", expected_type=TokenType.ACCESS
@@ -296,7 +315,7 @@ class SecurityServiceTests(TestCase):
         tampered_token = f"{header}.{payload}tampered.{signature}"
 
         with self.assertRaisesMessage(
-            AuthenticationFailed, "Invalid or malformed token"
+            AuthenticationFailed, ERROR_INVALID_OR_MALFORMED_TOKEN
         ):
             SecurityService.verify_jwt(tampered_token, expected_type=TokenType.ACCESS)
 
@@ -350,7 +369,7 @@ class AuthServiceTests(TestCase):
         with self.assertRaises(ValidationError) as ctx:
             AuthService.register(**self.register_data)
 
-        self.assertIn("User with this email already exists", str(ctx.exception.detail))
+        self.assertIn(ERROR_EMAIL_ALREADY_EXISTS, str(ctx.exception.detail))
 
     def test_create_session_x_forwarded_for_parsing(self):
         """Verify the client IP is correctly extracted from multi-hop proxy headers."""
@@ -421,9 +440,9 @@ class AuthServiceTests(TestCase):
             email="  NORMALIZED@filedrive.com  ",
             password="testpassword123",
         )
-        user = User.objects.get(email="NORMALIZED@filedrive.com")
+        user = User.objects.get(email="normalized@filedrive.com")
         self.assertEqual(user.name, "Trimmed Name")
-        self.assertEqual(user.email, "NORMALIZED@filedrive.com")
+        self.assertEqual(user.email, "normalized@filedrive.com")
 
     def test_login_success_service(self):
         """Test successful login via AuthService."""
@@ -460,7 +479,7 @@ class AuthServiceTests(TestCase):
                 email=self.register_data["email"],
                 password="wrongpassword",
             )
-        self.assertEqual(str(ctx.exception), "Invalid credentials")
+        self.assertEqual(str(ctx.exception), ERROR_INVALID_CREDENTIALS)
 
     def test_login_nonexistent_email_raises_authentication_failed(self):
         """Test that login with non-existent email raises AuthenticationFailed."""
@@ -469,7 +488,7 @@ class AuthServiceTests(TestCase):
                 email="nonexistent@filedrive.com",
                 password="anypassword",
             )
-        self.assertEqual(str(ctx.exception), "Invalid credentials")
+        self.assertEqual(str(ctx.exception), ERROR_INVALID_CREDENTIALS)
 
     def test_login_inactive_user_raises_authentication_failed(self):
         """Test that login with inactive user raises AuthenticationFailed."""
@@ -483,7 +502,7 @@ class AuthServiceTests(TestCase):
                 email=self.register_data["email"],
                 password=self.register_data["password"],
             )
-        self.assertEqual(str(ctx.exception), "Account is disabled")
+        self.assertEqual(str(ctx.exception), ERROR_USER_INVALID)
 
     def test_logout_invalidates_session(self):
         """Test that logout invalidates the given session ID."""
@@ -575,9 +594,7 @@ class RegisterViewTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("detail", response.data)
-        self.assertEqual(
-            str(response.data["detail"]), "User with this email already exists"
-        )
+        self.assertEqual(str(response.data["detail"]), ERROR_EMAIL_ALREADY_EXISTS)
 
     def test_register_validation_name_boundaries(self):
         # Name too short (min_length=2)
@@ -657,7 +674,7 @@ class LoginViewTests(APITestCase):
         response = self.client.post(self.url, payload, format="json")
 
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
-        self.assertEqual(response.data["detail"], "Invalid email or password.")
+        self.assertEqual(response.data["detail"], ERROR_INVALID_CREDENTIALS)
 
     def test_login_nonexistent_email_returns_401(self):
         """
@@ -668,7 +685,7 @@ class LoginViewTests(APITestCase):
         response = self.client.post(self.url, payload, format="json")
 
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
-        self.assertEqual(response.data["detail"], "Invalid email or password.")
+        self.assertEqual(response.data["detail"], ERROR_INVALID_CREDENTIALS)
 
     def test_login_inactive_user_is_rejected(self):
         user = User.objects.get(email="login@filedrive.com")
@@ -679,7 +696,7 @@ class LoginViewTests(APITestCase):
         response = self.client.post(self.url, payload, format="json")
 
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
-        self.assertEqual(response.data["detail"], "User account is disabled.")
+        self.assertEqual(response.data["detail"], ERROR_USER_INVALID)
 
     def test_login_oauth_only_account_rejected(self):
         """If an account only has a Google/GitHub identity, password login should fail cleanly."""
@@ -832,15 +849,15 @@ class RefreshViewTests(APITestCase):
         # Force the refresh token creation time to be in the past to trigger rotation
         # A refresh token lasts 7 days, so 75% of 7 days is 5.25 days.
         # Let's mock time travel back by 6 days to issue the token, then verify it rotates at current time.
+        past_time = timezone.now() - timedelta(days=6)
         with patch("accounts.services_security.timezone.now") as mock_now:
-            past_time = timezone.now() - timedelta(days=6)
             mock_now.return_value = past_time
             # Generate past refresh token and hash it in session
             past_refresh = SecurityService.generate_refresh_token(
                 self.user.id, self.session.id
             )
-            self.session.refresh_token_hash = SecurityService.hash_token(past_refresh)
-            self.session.save()
+        self.session.refresh_token_hash = SecurityService.hash_token(past_refresh)
+        self.session.save()
 
         self.client.cookies[REFRESH_TOKEN_COOKIE] = past_refresh
         response = self.client.post(self.url)
@@ -869,14 +886,14 @@ class RefreshViewTests(APITestCase):
     def test_refresh_token_reuse_detection_invalidates_session(self):
         """Using a previously used refresh token should detect reuse and invalidate session."""
         # Rotate first to generate a new token
+        past_time = timezone.now() - timedelta(days=6)
         with patch("accounts.services_security.timezone.now") as mock_now:
-            past_time = timezone.now() - timedelta(days=6)
             mock_now.return_value = past_time
             past_refresh = SecurityService.generate_refresh_token(
                 self.user.id, self.session.id
             )
-            self.session.refresh_token_hash = SecurityService.hash_token(past_refresh)
-            self.session.save()
+        self.session.refresh_token_hash = SecurityService.hash_token(past_refresh)
+        self.session.save()
 
         # Execute first refresh (rotation succeeds, session gets new hash)
         self.client.cookies[REFRESH_TOKEN_COOKIE] = past_refresh
@@ -947,25 +964,28 @@ class CustomJWTAuthenticationTests(TestCase):
         self.assertIsNone(result)
 
     def test_authenticate_invalid_token_type_raises_auth_failed(self):
-        token = SecurityService.generate_refresh_token(self.user.id, self.session.id)
-        request = self._get_request(
-            "/api/any-endpoint", headers={"Authorization": f"Bearer {token}"}
-        )
-        with self.assertRaisesMessage(
-            AuthenticationFailed, "Invalid or malformed token"
-        ):
-            self.auth.authenticate(request)
+        with self.settings(JWT_ACCESS_SECRET=settings.JWT_REFRESH_SECRET):
+            token = SecurityService.generate_refresh_token(
+                self.user.id, self.session.id
+            )
+            request = self._get_request(
+                "/api/any-endpoint", headers={"Authorization": f"Bearer {token}"}
+            )
+            with self.assertRaisesMessage(
+                AuthenticationFailed, ERROR_INVALID_TOKEN_TYPE
+            ):
+                self.auth.authenticate(request)
 
     def test_authenticate_expired_token_raises_auth_failed(self):
+        past_time = timezone.now() - timedelta(days=1)
         with patch("accounts.services_security.timezone.now") as mock_now:
-            past_time = timezone.now() - timedelta(days=1)
             mock_now.return_value = past_time
             token = SecurityService.generate_access_token(self.user.id, self.session.id)
 
         request = self._get_request(
             "/api/any-endpoint", headers={"Authorization": f"Bearer {token}"}
         )
-        with self.assertRaisesMessage(AuthenticationFailed, "Token has expired"):
+        with self.assertRaisesMessage(AuthenticationFailed, ERROR_TOKEN_EXPIRED):
             self.auth.authenticate(request)
 
     def test_authenticate_tampered_token_raises_auth_failed(self):
@@ -975,7 +995,7 @@ class CustomJWTAuthenticationTests(TestCase):
             "/api/any-endpoint", headers={"Authorization": f"Bearer {tampered_token}"}
         )
         with self.assertRaisesMessage(
-            AuthenticationFailed, "Invalid or malformed token"
+            AuthenticationFailed, ERROR_INVALID_OR_MALFORMED_TOKEN
         ):
             self.auth.authenticate(request)
 
@@ -986,17 +1006,16 @@ class CustomJWTAuthenticationTests(TestCase):
         request = self._get_request(
             "/api/any-endpoint", headers={"Authorization": f"Bearer {token}"}
         )
-        with self.assertRaisesMessage(
-            AuthenticationFailed, "User not found or inactive"
-        ):
+        with self.assertRaisesMessage(AuthenticationFailed, ERROR_USER_INVALID):
             self.auth.authenticate(request)
 
     def test_authenticate_invalid_session_raises_auth_failed(self):
         self.session.valid = False
         self.session.save()
+
         token = SecurityService.generate_access_token(self.user.id, self.session.id)
         request = self._get_request(
             "/api/any-endpoint", headers={"Authorization": f"Bearer {token}"}
         )
-        with self.assertRaisesMessage(AuthenticationFailed, "Session is invalid"):
+        with self.assertRaisesMessage(AuthenticationFailed, ERROR_INVALID_SESSION):
             self.auth.authenticate(request)

@@ -1,13 +1,20 @@
-import bcrypt
 import hashlib
 import hmac
 from datetime import timedelta
 from uuid import UUID
+
+import bcrypt
 from django.conf import settings
 from django.utils import timezone
 from jose import ExpiredSignatureError, JWTError, jwt
 from rest_framework.exceptions import AuthenticationFailed
-from .constants import TokenType
+
+from .constants import (
+    ERROR_INVALID_OR_MALFORMED_TOKEN,
+    ERROR_INVALID_TOKEN_TYPE,
+    ERROR_TOKEN_EXPIRED,
+    TokenType,
+)
 
 
 class SecurityService:
@@ -21,9 +28,9 @@ class SecurityService:
     @staticmethod
     def hash_secret(secret: str) -> str:
         """Securely hashes a plain-text password or secret using bcrypt."""
-        return bcrypt.hashpw(SecurityService._bcrypt_bytes(secret), bcrypt.gensalt()).decode(
-            "utf-8"
-        )
+        return bcrypt.hashpw(
+            SecurityService._bcrypt_bytes(secret), bcrypt.gensalt()
+        ).decode("utf-8")
 
     @staticmethod
     def verify_secret(plain_secret: str, hashed_secret: str) -> bool:
@@ -124,11 +131,11 @@ class SecurityService:
 
             # Prevent token confusion: ensure an access token wasn't passed to a refresh endpoint
             if expected_type and payload.get("type") != str(expected_type):
-                raise AuthenticationFailed("Invalid token type")
+                raise AuthenticationFailed(ERROR_INVALID_TOKEN_TYPE)
 
             return payload
 
         except ExpiredSignatureError:
-            raise AuthenticationFailed("Token has expired")
+            raise AuthenticationFailed(ERROR_TOKEN_EXPIRED)
         except JWTError:
-            raise AuthenticationFailed("Invalid or malformed token")
+            raise AuthenticationFailed(ERROR_INVALID_OR_MALFORMED_TOKEN)
