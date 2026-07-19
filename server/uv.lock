@@ -336,7 +336,6 @@ dependencies = [
     { name = "django-cors-headers" },
     { name = "django-environ" },
     { name = "django-filter" },
-    { name = "django-stubs" },
     { name = "djangorestframework" },
     { name = "gunicorn" },
     { name = "psycopg", extra = ["binary", "pool"] },
@@ -345,6 +344,7 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "django-stubs" },
     { name = "djangorestframework-stubs" },
 ]
 
@@ -355,7 +355,6 @@ requires-dist = [
     { name = "django-cors-headers", specifier = ">=4.9.0" },
     { name = "django-environ", specifier = ">=0.14.0" },
     { name = "django-filter", specifier = ">=26.1" },
-    { name = "django-stubs", specifier = ">=6.0.7" },
     { name = "djangorestframework", specifier = ">=3.17.1" },
     { name = "gunicorn", specifier = ">=26.0.0" },
     { name = "psycopg", extras = ["binary", "pool"], specifier = ">=3.3.4" },
@@ -363,7 +362,10 @@ requires-dist = [
 ]
 
 [package.metadata.requires-dev]
-dev = [{ name = "djangorestframework-stubs", specifier = ">=3.17.0" }]
+dev = [
+    { name = "django-stubs", specifier = ">=6.0.7" },
+    { name = "djangorestframework-stubs", specifier = ">=3.17.0" },
+]
 
 [[package]]
 name = "gunicorn"
