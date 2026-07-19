@@ -38,7 +38,10 @@ FileDrive is a modern, collaborative cloud storage and workspace SaaS platform d
 
 ## 🚀 Quick Start
 
-Ensure you have [Docker](https://www.docker.com/) and [Just](https://github.com/casey/just) installed.
+Ensure you have [Docker](https://www.docker.com/) and [Just](https://github.com/casey/just) installed. 
+
+> [!NOTE]
+> If you are working in a dev container environment where running Docker is restricted or unavailable, please refer to the [Running in Dev Container without Docker](DEVCONTAINER_NO_DOCKER.md) guide instead.
 
 ### 1. Spin up the containers
 Start PostgreSQL, Redis, Django server, and the Vite client:
