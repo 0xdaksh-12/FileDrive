@@ -7,7 +7,7 @@ from django.utils import timezone
 from rest_framework.exceptions import AuthenticationFailed, ValidationError
 from rest_framework.response import Response
 
-from .constants import (
+from accounts.constants import (
     ERROR_EMAIL_ALREADY_EXISTS,
     ERROR_INVALID_CREDENTIALS,
     ERROR_INVALID_SESSION,
@@ -15,8 +15,8 @@ from .constants import (
     REFRESH_TOKEN_COOKIE,
     TokenType,
 )
-from .models import AuthIdentity, AuthSession, User
-from .services_security import SecurityService
+from accounts.models import AuthIdentity, AuthSession, User
+from accounts.services_security import SecurityService
 
 
 class AuthService:

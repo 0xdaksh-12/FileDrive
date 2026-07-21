@@ -2,9 +2,13 @@ from rest_framework import status, views
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
-from .constants import REFRESH_TOKEN_COOKIE
-from .serializers import LoginSerializer, RegisterSerializer, TokenResponseSerializer
-from .services_auth import AuthService
+from accounts.constants import REFRESH_TOKEN_COOKIE
+from accounts.serializers import (
+    LoginSerializer,
+    RegisterSerializer,
+    TokenResponseSerializer,
+)
+from accounts.services_auth import AuthService
 
 
 class RegisterView(views.APIView):

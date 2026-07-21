@@ -9,7 +9,7 @@ from django.utils import timezone
 from jose import ExpiredSignatureError, JWTError, jwt
 from rest_framework.exceptions import AuthenticationFailed
 
-from .constants import (
+from accounts.constants import (
     ERROR_INVALID_OR_MALFORMED_TOKEN,
     ERROR_INVALID_TOKEN_TYPE,
     ERROR_TOKEN_EXPIRED,

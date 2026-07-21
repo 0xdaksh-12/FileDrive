@@ -6,8 +6,8 @@ from accounts.constants import (
     ERROR_USER_INVALID,
     TokenType,
 )
+from accounts.models import AuthSession, User
 from accounts.services_security import SecurityService
-from .models import AuthSession, User
 
 
 class CustomJWTAuthentication(BaseAuthentication):
@@ -17,7 +17,7 @@ class CustomJWTAuthentication(BaseAuthentication):
             return None
 
         token = auth_header.split(" ")[1]
-        
+
         # Verify the access token using SecurityService
         payload = SecurityService.verify_jwt(token, expected_type=TokenType.ACCESS)
 
