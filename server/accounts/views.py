@@ -7,6 +7,7 @@ from accounts.serializers import (
     LoginSerializer,
     RegisterSerializer,
     TokenResponseSerializer,
+    UserResponseSerializer,
 )
 from accounts.services_auth import AuthService
 
@@ -86,3 +87,13 @@ class LogoutView(views.APIView):
         response = Response(status=status.HTTP_204_NO_CONTENT)
         AuthService.delete_cookie_token(response)
         return response
+
+
+class UserView(views.APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        # request.auth holds our session_id from CustomJWTAuthentication
+        # request.user holds the User object
+        user = request.user
+        return Response(UserResponseSerializer(user).data)
