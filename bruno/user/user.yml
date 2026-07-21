@@ -1,0 +1,17 @@
+info:
+  name: user
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: "{{API_BASE}}/user"
+  auth:
+    type: bearer
+    token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJlN2ZhOTdhNS05YTY5LTQwMTQtYmZjOC0xOWY5MTViNzMwOWUiLCJzaWQiOiJmZjEzNDZjOS1jZWM1LTRhZDItYmFiNS05NDM1MDY0NDI2NjIiLCJ0eXBlIjoiYWNjZXNzIiwiaWF0IjoxNzg0NjQ1NDQ4LCJleHAiOjE3ODQ2NDYzNDh9.N__Azlp1dOUExJmOF5t-1ek6xEsuadF8KDnwG6tj1II
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

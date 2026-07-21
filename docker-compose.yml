@@ -26,7 +26,8 @@ services:
     volumes: &backend-volumes
       - ./server:/app
       - /app/.venv
-    command: uv run python -m debugpy --listen 0.0.0.0:5678 manage.py runserver 0.0.0.0:8000 --nothreading --noreload
+    # command: uv run python -m debugpy --listen 0.0.0.0:5678 manage.py runserver 0.0.0.0:8000 --noreload --nothreading
+    command: uv run python -m debugpy --listen 0.0.0.0:5678 manage.py runserver 0.0.0.0:8000
     develop: &backend-develop
       watch:
         - action: rebuild
@@ -62,6 +63,14 @@ services:
       - /app/node_modules
     depends_on:
       - server
+    develop:
+      watch:
+        - action: rebuild
+          path: ./client/Dockerfile
+        - action: rebuild
+          path: ./client/package.json
+        - action: rebuild
+          path: ./client/pnpm-lock.yaml
 
   postgres:
     image: postgres:17

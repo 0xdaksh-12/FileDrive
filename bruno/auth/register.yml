@@ -14,7 +14,7 @@ http:
       - name: email
         value: daksh8085@gmail.com
       - name: password
-        value: Password123
+        value: Password123!
   auth: inherit
 
 settings:
