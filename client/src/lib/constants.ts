@@ -1,16 +1,25 @@
 export const ROUTES = {
-  root: "/",
-  dashboard: "/dashboard",
+  root: '/',
+  dashboard: '/dashboard',
 } as const;
 
 export const API_ENDPOINTS = {
   common: {
-    health: "/api/health",
+    health: '/api/health',
+  },
+  auth: {
+    login: '/api/auth/login',
+    refresh: '/api/auth/refresh',
+    register: '/api/auth/register',
+    logout: '/api/auth/logout',
+  },
+  user: {
+    user: '/api/user',
   },
 } as const;
 
 export const QUERY_KEYS = {
-  health: ["health"] as const,
+  health: ['health'] as const,
 };
 
-export const APP_NAME = "FileDrive";
+export const APP_NAME = 'FileDrive';
