@@ -150,3 +150,26 @@ REST_FRAMEWORK = {
     # Enable filtering backend globally
     "DEFAULT_FILTER_BACKENDS": ("django_filters.rest_framework.DjangoFilterBackend",),
 }
+
+# Celery
+CELERY_BROKER_URL = env("BROKER_URL")
+
+# Celery Serializers Config
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
+CELERY_TASK_TIMEZONE = "UTC"
+CELERY_TIMEZONE = "UTC"
+
+# Celery Worker Config
+CELERY_WORKER_PREFETCH_MULTIPLIER = 1
+CELERY_TASK_ACKS_LATE = True
+
+# Celery Result Backend Config
+CELERY_IGNORE_RESULT = True
+CELERY_RESULT_BACKEND = None
+
+# Prevent Celery from holding database/redis connections indefinitely on boot
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+CELERY_BROKER_TRANSPORT_OPTIONS = {"visibility_timeout": 3600}  # 1 hour
+

@@ -1,21 +1,21 @@
 services:
   server:
-    build:
+    build: &backend-build
       context: ./server
       dockerfile: Dockerfile
     container_name: server
-    environment:
+    environment: &backend-env
       SECRET_KEY: "django-insecure-ljpmo(z8ela5ios3pj+a7ls!^lw%3-o-f)rwvmz3!3+0$&tiyl"
       ALLOWED_HOSTS: "localhost,127.0.0.1,server,0.0.0.0"
       CORS_ALLOWED_ORIGINS: "http://localhost:3000"
       DEBUG: "True"
       DATABASE_URL: "postgres://filedrive:filedrive@postgres:5432/filedrive"
-      REDIS_URL: "redis://redis:6379/0"
+      BROKER_URL: "redis://redis:6379/0"
       JWT_ACCESS_SECRET: "access-token-^O0>cQNlP6rBz|(wOOWp*>;^:.D}/ENl=q!mo5OTb)c"
       JWT_REFRESH_SECRET: "refresh-token-W=9(>0CChhj#p&p=<YYsINr/WpM/{yTwb0r[.jA_Ju="
       ACCESS_TOKEN_EXPIRE_MINUTES: "15"
       REFRESH_TOKEN_EXPIRE_DAYS: "7"
-    depends_on:
+    depends_on: &backend-depends
       postgres:
         condition: service_healthy
       redis:
@@ -23,11 +23,11 @@ services:
     ports:
       - 8000:8000 # can put 127.0.0.1:8000 if you want it is secure
       - 5678:5678 # Debugging port
-    volumes:
+    volumes: &backend-volumes
       - ./server:/app
       - /app/.venv
     command: uv run python -m debugpy --listen 0.0.0.0:5678 manage.py runserver 0.0.0.0:8000 --nothreading --noreload
-    develop:
+    develop: &backend-develop
       watch:
         - action: rebuild
           path: ./server/Dockerfile
@@ -37,6 +37,15 @@ services:
 
         - action: rebuild
           path: ./server/uv.lock
+
+  celery:
+    build: *backend-build
+    container_name: celery
+    environment: *backend-env
+    depends_on: *backend-depends
+    volumes: *backend-volumes
+    command: uv run celery -A config worker --loglevel=info
+    develop: *backend-develop
 
   client:
     build:
