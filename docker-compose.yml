@@ -56,6 +56,7 @@ services:
     environment:
       VITE_API_URL: "http://localhost:8000"
       CHOKIDAR_USEPOLLING: "true"
+      CI: "true"
     ports:
       - 3000:3000
     volumes:

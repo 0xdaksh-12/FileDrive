@@ -71,5 +71,10 @@
   "[jsonc]": {
     "editor.tabSize": 2,
     "editor.insertSpaces": true
+  },
+  "[css]": {
+    "editor.defaultFormatter": "vscode.css-language-features",
+    "editor.tabSize": 2,
+    "editor.insertSpaces": true
   }
 }

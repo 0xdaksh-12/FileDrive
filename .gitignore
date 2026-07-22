@@ -49,6 +49,7 @@ build/
 .next/
 .nuxt/
 .cache/
+.pnpm-store
 
 # Frontend testing & logs
 npm-debug.log*
