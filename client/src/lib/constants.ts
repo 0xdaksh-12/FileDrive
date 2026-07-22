@@ -1,6 +1,7 @@
 export const ROUTES = {
   root: '/',
   dashboard: '/dashboard',
+  register: '/register',
 } as const;
 
 export const API_ENDPOINTS = {

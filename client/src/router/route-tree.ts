@@ -1,3 +1,7 @@
-import { dashboardRoute, homeRoute, rootRoute } from "@/router/routes";
+import { dashboardRoute, homeRoute, rootRoute, registerRoute, protectedLayoutRoute } from '@/router/routes';
 
-export const routeTree = rootRoute.addChildren([homeRoute, dashboardRoute]);
+export const routeTree = rootRoute.addChildren([
+  homeRoute,
+  registerRoute,
+  protectedLayoutRoute.addChildren([dashboardRoute]),
+]);
