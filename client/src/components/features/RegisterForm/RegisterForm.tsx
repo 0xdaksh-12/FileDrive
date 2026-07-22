@@ -8,7 +8,7 @@ import { FormField } from '../../ui/FormField/FormField';
 import { Button } from '../../ui/Button/Button';
 import { Icon } from '../../ui/Icon/Icon';
 import { useAuthStore } from '@/store/auth';
-import { ROUTES } from '@/lib/constants';
+import { APP_NAME, ROUTES } from '@/lib/constants';
 import styles from './RegisterForm.module.css';
 
 import { getErrorMessage } from '@/lib/error';
@@ -116,7 +116,7 @@ export const RegisterForm: React.FC = () => {
       <h1 className={styles.title}>
         Create your
         <br />
-        FileDrive
+        {APP_NAME}
       </h1>
 
       <form onSubmit={handleSubmit(onSubmit)} className={styles.form}>
@@ -206,6 +206,7 @@ export const RegisterForm: React.FC = () => {
 
         {submitError && <p className={styles.error}>{submitError}</p>}
 
+        {/* TODO: Term and condition */}
         <Button
           type="submit"
           variant="primary"
@@ -218,7 +219,10 @@ export const RegisterForm: React.FC = () => {
       </form>
 
       <p className={styles.footer}>
-        Already have an account? <span className={styles.link}>Sign In</span>
+        Already have an account?{' '}
+        <span className={styles.link} onClick={() => navigate({ to: ROUTES.login })}>
+          Sign In
+        </span>
       </p>
     </div>
   );

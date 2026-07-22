@@ -5,6 +5,7 @@ import ErrorPage from '@/pages/ErrorPage';
 import NotFoundPage from '@/pages/NotFoundPage';
 import Dashboard from '@/pages/Dashboard';
 import RegisterPage from '@/pages/auth/RegisterPage';
+import LoginPage from '@/pages/auth/LoginPage';
 import { useAuthStore } from '@/store/auth';
 
 export const rootRoute = createRootRoute({
@@ -23,6 +24,12 @@ export const registerRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: ROUTES.register,
   component: RegisterPage,
+});
+
+export const loginRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: ROUTES.login,
+  component: LoginPage,
 });
 
 // Pathless layout route for protecting nested routes
