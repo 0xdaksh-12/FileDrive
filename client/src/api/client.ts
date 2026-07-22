@@ -1,5 +1,6 @@
 import { API_ENDPOINTS } from '@/lib/constants';
 import axios, { type InternalAxiosRequestConfig } from 'axios';
+import { authChannel } from '@/lib/auth-channel';
 
 interface ExtendedRequestConfig extends InternalAxiosRequestConfig {
   _retry?: boolean;
@@ -49,6 +50,19 @@ const processQueue = (error: unknown, token: string | null = null) => {
   failedQueue = [];
 };
 
+if (authChannel) {
+  authChannel.addEventListener('message', (event) => {
+    const { type, payload } = event.data;
+    if (type === 'TOKEN_REFRESH') {
+      isRefreshing = false;
+      processQueue(null, payload.accessToken);
+    } else if (type === 'LOGOUT') {
+      isRefreshing = false;
+      processQueue(new Error('Session expired'), null);
+    }
+  });
+}
+
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -61,6 +75,15 @@ apiClient.interceptors.response.use(
       !originalRequest.url?.includes(API_ENDPOINTS.auth.login)
     ) {
       const store = await getAuthStore();
+      const currentToken = store.getState().accessToken;
+      const sentToken = originalRequest.headers.Authorization?.toString().replace('Bearer ', '');
+
+      // Short circuit: if token was already refreshed by another tab
+      if (currentToken && sentToken && currentToken !== sentToken) {
+        originalRequest.headers.Authorization = `Bearer ${currentToken}`;
+        originalRequest._retry = true;
+        return apiClient(originalRequest);
+      }
 
       if (isRefreshing) {
         return new Promise<string>((resolve, reject) => {
@@ -74,8 +97,28 @@ apiClient.interceptors.response.use(
           .catch((err) => Promise.reject(err));
       }
 
+      const LOCK_KEY = 'auth_refresh_lock';
+      const now = Date.now();
+      const rawLock = localStorage.getItem(LOCK_KEY);
+      const lockTime = rawLock ? parseInt(rawLock, 10) : 0;
+
+      if (lockTime && now - lockTime < 10000) {
+        // A refresh is already in progress in another tab. Wait for it.
+        isRefreshing = true;
+        return new Promise<string>((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        })
+          .then((token) => {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+            originalRequest._retry = true;
+            return apiClient(originalRequest);
+          })
+          .catch((err) => Promise.reject(err));
+      }
+
       originalRequest._retry = true;
       isRefreshing = true;
+      localStorage.setItem(LOCK_KEY, Date.now().toString());
 
       try {
         const refreshResponse = await apiClient.post<{ access_token?: string }>(
@@ -84,12 +127,20 @@ apiClient.interceptors.response.use(
 
         if (refreshResponse.status === 204 || !refreshResponse.data?.access_token) {
           store.getState().clear();
+          localStorage.removeItem(LOCK_KEY);
+          authChannel?.postMessage({ type: 'LOGOUT' });
           processQueue(new Error('Session expired'), null);
           return Promise.reject(error);
         }
 
         const newAccessToken = refreshResponse.data.access_token;
         store.getState().setToken(newAccessToken);
+        localStorage.removeItem(LOCK_KEY);
+
+        authChannel?.postMessage({
+          type: 'TOKEN_REFRESH',
+          payload: { accessToken: newAccessToken },
+        });
 
         processQueue(null, newAccessToken);
 
@@ -97,6 +148,8 @@ apiClient.interceptors.response.use(
         return apiClient(originalRequest);
       } catch (refreshError) {
         store.getState().clear();
+        localStorage.removeItem(LOCK_KEY);
+        authChannel?.postMessage({ type: 'LOGOUT' });
         processQueue(refreshError, null);
         return Promise.reject(refreshError);
       } finally {

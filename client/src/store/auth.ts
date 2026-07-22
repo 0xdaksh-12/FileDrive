@@ -1,28 +1,24 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import { apiClient } from '@/api/client';
-import { API_ENDPOINTS } from '@/lib/constants';
+import { authChannel } from '@/lib/auth-channel';
 import {
   loginApi,
   registerApi,
   logoutApi,
   newAccessTokenApi,
+  getCurrentUserApi,
   type LoginCrediental,
   type RegisterCrediental,
-} from '@/api/auth.api';
-
-export interface User {
-  id: string;
-  email: string;
-  name: string;
-  role: 'user' | 'admin';
-}
+  type User,
+} from '@/api/account.api';
 
 interface AuthStore {
   user: User | null;
   accessToken: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+
+  hasAttemptedRefresh: boolean;
 
   setToken: (accessToken: string | null) => void;
   setUser: (user: User | null) => void;
@@ -32,6 +28,7 @@ interface AuthStore {
   refresh: () => Promise<void>;
   getCurrentUser: () => Promise<void>;
   clear: () => void;
+  setHasAttemptedRefresh: (val: boolean) => void;
 }
 
 export const useAuthStore = create<AuthStore>()(
@@ -41,6 +38,11 @@ export const useAuthStore = create<AuthStore>()(
       user: null,
       isAuthenticated: false,
       isLoading: false,
+      hasAttemptedRefresh: false,
+
+      setHasAttemptedRefresh: (val: boolean) => {
+        set(() => ({ hasAttemptedRefresh: val }));
+      },
 
       setToken: (accessToken: string | null) => {
         set(() => ({ accessToken }));
@@ -55,6 +57,15 @@ export const useAuthStore = create<AuthStore>()(
           const res = await loginApi(credential);
           get().setToken(res.accessToken);
           await get().getCurrentUser();
+
+          const currentUser = get().user;
+          const token = get().accessToken;
+          if (currentUser && token) {
+            authChannel?.postMessage({
+              type: 'LOGIN',
+              payload: { user: currentUser, accessToken: token },
+            });
+          }
         } catch (error) {
           get().clear();
           throw error;
@@ -69,6 +80,15 @@ export const useAuthStore = create<AuthStore>()(
           const res = await registerApi(credential);
           get().setToken(res.accessToken);
           await get().getCurrentUser();
+
+          const currentUser = get().user;
+          const token = get().accessToken;
+          if (currentUser && token) {
+            authChannel?.postMessage({
+              type: 'LOGIN',
+              payload: { user: currentUser, accessToken: token },
+            });
+          }
         } catch (error) {
           get().clear();
           throw error;
@@ -83,6 +103,14 @@ export const useAuthStore = create<AuthStore>()(
           const res = await newAccessTokenApi();
           get().setToken(res.accessToken);
           await get().getCurrentUser();
+
+          const token = get().accessToken;
+          if (token) {
+            authChannel?.postMessage({
+              type: 'TOKEN_REFRESH',
+              payload: { accessToken: token },
+            });
+          }
         } catch (error) {
           get().clear();
           throw error;
@@ -94,8 +122,8 @@ export const useAuthStore = create<AuthStore>()(
       getCurrentUser: async () => {
         set({ isLoading: true });
         try {
-          const response = await apiClient.get<User>(API_ENDPOINTS.user.user);
-          get().setUser(response.data);
+          const user = await getCurrentUserApi();
+          get().setUser(user);
         } catch (error) {
           get().clear();
           throw error;
@@ -115,6 +143,7 @@ export const useAuthStore = create<AuthStore>()(
           console.error('Logout API error:', error);
         } finally {
           get().clear();
+          authChannel?.postMessage({ type: 'LOGOUT' });
         }
       },
 
@@ -124,6 +153,7 @@ export const useAuthStore = create<AuthStore>()(
           user: null,
           isAuthenticated: false,
           isLoading: false,
+          hasAttemptedRefresh: false,
         });
       },
     }),
@@ -138,3 +168,26 @@ export const useAuthStore = create<AuthStore>()(
     },
   ),
 );
+
+if (authChannel) {
+  authChannel.onmessage = (event) => {
+    const { type, payload } = event.data;
+    switch (type) {
+      case 'LOGIN':
+        useAuthStore.setState({
+          user: payload.user,
+          accessToken: payload.accessToken,
+          isAuthenticated: true,
+        });
+        break;
+      case 'LOGOUT':
+        useAuthStore.getState().clear();
+        break;
+      case 'TOKEN_REFRESH':
+        useAuthStore.setState({
+          accessToken: payload.accessToken,
+        });
+        break;
+    }
+  };
+}

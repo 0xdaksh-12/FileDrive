@@ -19,6 +19,13 @@ export interface AuthResponse {
   accessToken: string;
 }
 
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  role: 'user' | 'admin';
+}
+
 export async function loginApi(crediental: LoginCrediental): Promise<AuthResponse> {
   const response = await apiClient.post<BackendAuthResponse>(
     API_ENDPOINTS.auth.login,
@@ -30,7 +37,9 @@ export async function loginApi(crediental: LoginCrediental): Promise<AuthRespons
   };
 }
 
-export async function registerApi(crediental: RegisterCrediental): Promise<AuthResponse> {
+export async function registerApi(
+  crediental: RegisterCrediental,
+): Promise<AuthResponse> {
   const response = await apiClient.post<BackendAuthResponse>(
     API_ENDPOINTS.auth.register,
     crediental,
@@ -54,4 +63,9 @@ export async function newAccessTokenApi(): Promise<AuthResponse> {
   return {
     accessToken: response.data.access_token,
   };
+}
+
+export async function getCurrentUserApi(): Promise<User> {
+  const response = await apiClient.get<User>(API_ENDPOINTS.user.user);
+  return response.data;
 }

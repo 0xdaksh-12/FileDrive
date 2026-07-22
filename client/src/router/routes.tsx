@@ -12,6 +12,18 @@ export const rootRoute = createRootRoute({
   component: Outlet,
   errorComponent: ErrorPage,
   notFoundComponent: NotFoundPage,
+  beforeLoad: async () => {
+    const store = useAuthStore.getState();
+    if (!store.isAuthenticated && !store.hasAttemptedRefresh) {
+      try {
+        await store.refresh();
+      } catch (err) {
+        console.warn('Initial session refresh check failed:', err);
+      } finally {
+        store.setHasAttemptedRefresh(true);
+      }
+    }
+  },
 });
 
 export const homeRoute = createRoute({
@@ -24,12 +36,28 @@ export const registerRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: ROUTES.register,
   component: RegisterPage,
+  beforeLoad: async () => {
+    const { isAuthenticated } = useAuthStore.getState();
+    if (isAuthenticated) {
+      throw redirect({
+        to: ROUTES.dashboard,
+      });
+    }
+  },
 });
 
 export const loginRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: ROUTES.login,
   component: LoginPage,
+  beforeLoad: async () => {
+    const { isAuthenticated } = useAuthStore.getState();
+    if (isAuthenticated) {
+      throw redirect({
+        to: ROUTES.dashboard,
+      });
+    }
+  },
 });
 
 // Pathless layout route for protecting nested routes
