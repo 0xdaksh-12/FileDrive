@@ -57,6 +57,7 @@ INSTALLED_APPS = [
     "django_filters",
     # Local Apps
     "accounts",
+    "workspaces",
 ]
 
 MIDDLEWARE = [
@@ -172,4 +173,3 @@ CELERY_RESULT_BACKEND = None
 # Prevent Celery from holding database/redis connections indefinitely on boot
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 CELERY_BROKER_TRANSPORT_OPTIONS = {"visibility_timeout": 3600}  # 1 hour
-
