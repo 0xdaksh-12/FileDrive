@@ -41,6 +41,7 @@ in
         rm -rf .venv
         uv venv
         source .venv/bin/activate
+        uv sync
 
         cd ..
       elif [ -d "../server" ] || [ -f "manage.py" ]; then
