@@ -8,6 +8,8 @@ from django.contrib.auth.models import (
 )
 from django.db import models
 
+from common.models import TimeStampedModel
+
 
 class CaseInsensitiveEmailField(models.EmailField):
     """
@@ -69,7 +71,7 @@ class UserManager(BaseUserManager):
         return self.create_user(email, name, password, **extra_fields)
 
 
-class User(AbstractBaseUser, PermissionsMixin):
+class User(AbstractBaseUser, PermissionsMixin, TimeStampedModel):
     class Role(models.TextChoices):
         USER = "user", "User"
         ADMIN = "admin", "Admin"
@@ -82,8 +84,6 @@ class User(AbstractBaseUser, PermissionsMixin):
     )
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
     objects: UserManager = UserManager()
 
@@ -125,7 +125,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         return self.role == self.Role.ADMIN
 
 
-class AuthIdentity(models.Model):
+class AuthIdentity(TimeStampedModel):
     class Provider(models.TextChoices):
         EMAIL = "email", "Email"
         GOOGLE = "google", "Google"
@@ -140,15 +140,13 @@ class AuthIdentity(models.Model):
     email = CaseInsensitiveEmailField(db_index=True)
     email_verified = models.BooleanField(default=False)
     password_hash = models.CharField(max_length=128, null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = "auth_identities"
         unique_together = ("provider", "email")
 
 
-class AuthSession(models.Model):
+class AuthSession(TimeStampedModel):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="sessions")
     refresh_token_hash = models.CharField(max_length=128, null=True, blank=True)
@@ -156,8 +154,6 @@ class AuthSession(models.Model):
     ip_address = models.GenericIPAddressField(null=True, blank=True)
     user_agent = models.CharField(max_length=512, null=True, blank=True)
     expires_at = models.DateTimeField(null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = "auth_sessions"
