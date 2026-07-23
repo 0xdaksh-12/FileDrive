@@ -34,24 +34,32 @@ in
       export PYTHONUNBUFFERED=1
 
       export LD_LIBRARY_PATH="${pkgs.stdenv.cc.cc.lib}/lib''${LD_LIBRARY_PATH:+:''$LD_LIBRARY_PATH}"
-
       if [ -d "server" ]; then
         cd server
-        if [ ! -d ".venv" ]; then
-          uv venv
-        fi
+
+        # Recreate virtual environment
+        rm -rf .venv
+        uv venv
         source .venv/bin/activate
+
         cd ..
       elif [ -d "../server" ] || [ -f "manage.py" ]; then
         # We are already inside the server directory
-        if [ ! -d ".venv" ]; then
-          uv venv;
-        fi
+
+        # Recreate virtual environment
+        rm -rf .venv
+        uv venv
         source .venv/bin/activate
       fi
 
-      if [ -d "client" ] && [ ! -d "client/node_modules" ]; then
-        (cd client && pnpm install)
+      if [ -d "client" ]; then
+        (
+          cd client
+
+          # Reinstall dependencies
+          rm -rf node_modules
+          pnpm install
+        )
       fi
 
       echo "Welcome to Drive"
